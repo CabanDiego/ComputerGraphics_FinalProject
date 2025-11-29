@@ -3,6 +3,23 @@ import * as THREE from './modules/three.module.js';
 let physicsWorld, scene, camera, renderer, clock, rigidBodies = [], tmpTrans;
 const cameraPosition = new THREE.Vector3(0, 10, 20);
 
+let keys = { left:false, right:false, up:false, down:false };
+
+window.addEventListener('keydown', (e)=>{
+    if (e.key === 'ArrowLeft') keys.left = true;
+    if (e.key === 'ArrowRight') keys.right = true;
+    if (e.key === 'ArrowUp') keys.up = true;
+    if (e.key === 'ArrowDown') keys.down = true;
+});
+
+window.addEventListener('keyup', (e)=>{
+    if (e.key === 'ArrowLeft') keys.left = false;
+    if (e.key === 'ArrowRight') keys.right = false;
+    if (e.key === 'ArrowUp') keys.up = false;
+    if (e.key === 'ArrowDown') keys.down = false;
+});
+
+
 Ammo().then(() => {
     tmpTrans = new Ammo.btTransform();
     start();
@@ -81,6 +98,8 @@ function setupGraphics()
 
 function renderFrame() {
     let deltaTime = clock.getDelta();
+    updateBlockTilt(deltaTime);
+
     updatePhysics(deltaTime);
 
     // Make camera follow the ball
@@ -97,8 +116,9 @@ function renderFrame() {
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
-    let scale = {x:50, y:2, z:50};
-    let quat = {x:-0.2, y:0, z:0, w:1};
+    let scale = {x:50, y:2, z:200};
+    // start platform flat (no initial tilt)
+    let quat = {x:0, y:0, z:0, w:1};
     let mass = 0;
 
     // Three.js mesh with correct geometry
@@ -107,7 +127,8 @@ function createBlock() {
         new THREE.MeshPhongMaterial({color:0xa0afa4})
     );
     blockPlane.position.set(pos.x, pos.y, pos.z);
-    blockPlane.quaternion.set(quat.x, quat.y, quat.z, quat.w); // match rotation
+    // no initial tilt — start flat
+    blockPlane.quaternion.set(quat.x, quat.y, quat.z, quat.w);
     blockPlane.castShadow = true;
     blockPlane.receiveShadow = true;
     scene.add(blockPlane);
@@ -129,16 +150,18 @@ function createBlock() {
     let body = new Ammo.btRigidBody(rbInfo);
 
     physicsWorld.addRigidBody(body);
+
+    window.blockMesh = blockPlane;
+    window.blockBody = body;
 }
 
 
 function createBall()
 {
-    
     let pos = {x: 0, y: 20, z: 0};
     let radius = 2;
     let quat = {x: 0, y: 0, z: 0, w: 1};
-    let mass = 1;
+    let mass = 0.5;
 
     //threeJS Section
     let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({color: 0xff0505}));
@@ -167,17 +190,16 @@ function createBall()
     let rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, colShape, localInertia );
     let body = new Ammo.btRigidBody( rbInfo );
 
-
     physicsWorld.addRigidBody( body );
     
     ball.userData.physicsBody = body;
     rigidBodies.push(ball);
+    
 }
 
 
 function updatePhysics( deltaTime )
 {
-
     physicsWorld.stepSimulation( deltaTime, 10 );
 
     for ( let i = 0; i < rigidBodies.length; i++ ) 
@@ -187,7 +209,6 @@ function updatePhysics( deltaTime )
         let ms = objAmmo.getMotionState();
         if ( ms ) 
         {
-
             ms.getWorldTransform( tmpTrans );
             let p = tmpTrans.getOrigin();
             let q = tmpTrans.getRotation();
@@ -198,3 +219,62 @@ function updatePhysics( deltaTime )
 }
 
 
+function updateBlockTilt(dt) {
+    if (!window.blockMesh || !window.blockBody) return;
+
+    // TUNING PARAMETERS (change as desired)
+    const tiltSpeed = 2.5;   // responsiveness when a key is held (per second)
+    const returnSpeed = 3.0; // speed when returning to center (per second)
+    const maxTilt = Math.PI / 6; // 30 degrees in radians
+
+    // Determine target angles (radians). Start at 0 (flat).
+    // ArrowUp should tilt platform away => negative X rotation
+    let targetX = 0;
+    let targetZ = 0;
+
+    if (keys.up)    targetX -= maxTilt; // away = negative X
+    if (keys.down)  targetX += maxTilt; // toward you = positive X
+    if (keys.left)  targetZ += maxTilt; // keep same sign/behavior as your original code
+    if (keys.right) targetZ -= maxTilt;
+
+    // Per-axis speed: use tiltSpeed when commanding, returnSpeed when going back to 0
+    let speedX = (keys.up || keys.down) ? tiltSpeed : returnSpeed;
+    let speedZ = (keys.left || keys.right) ? tiltSpeed : returnSpeed;
+
+    // Lerp the current rotation toward the target rotation using a proportion based on dt*speed.
+    // Use Math.min(1, speed * dt) to keep the interpolation stable.
+    let tX = Math.min(1, speedX * dt);
+    let tZ = Math.min(1, speedZ * dt);
+
+    // Use THREE's helpers for safe lerp & clamp
+    blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, targetX, tX);
+    blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, targetZ, tZ);
+
+    // Clamp to max tilt
+    blockMesh.rotation.x = THREE.MathUtils.clamp(blockMesh.rotation.x, -maxTilt, maxTilt);
+    blockMesh.rotation.z = THREE.MathUtils.clamp(blockMesh.rotation.z, -maxTilt, maxTilt);
+
+    // Update Ammo physics transform using the mesh quaternion
+    // Ensure Ammo body is awake/active so it responds
+    try {
+        blockBody.activate();
+    } catch (err) {
+        // Some Ammo builds might not throw; ignore if not available
+    }
+
+    let transform = new Ammo.btTransform();
+    transform.setIdentity();
+
+    transform.setOrigin(new Ammo.btVector3(
+        blockMesh.position.x,
+        blockMesh.position.y,
+        blockMesh.position.z
+    ));
+
+    // Convert Three.js quaternion → Ammo quaternion
+    let q = new THREE.Quaternion();
+    q.setFromEuler(new THREE.Euler(blockMesh.rotation.x, blockMesh.rotation.y, blockMesh.rotation.z, 'XYZ'));
+    transform.setRotation(new Ammo.btQuaternion(q.x, q.y, q.z, q.w));
+
+    blockBody.setWorldTransform(transform);
+}

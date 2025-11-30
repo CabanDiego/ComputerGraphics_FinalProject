@@ -1,3 +1,4 @@
 .pio
 .ccls
 .cache
+compile_commands.json

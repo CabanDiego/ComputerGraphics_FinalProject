@@ -5,11 +5,11 @@
 
 /* This driver reads raw data from the BNO055
 
-   Connections
+   Connections (Using Teensy 4.1)
    ===========
-   Connect SCL to analog 5
-   Connect SDA to analog 4
-   Connect VDD to 3.3V DC
+   Connect SCL to 19
+   Connect SDA to 18
+   Connect VIN to 3.3V DC
    Connect GROUND to common ground
 
    History
@@ -88,7 +88,6 @@ void loop(void) {
   Serial.print(euler.z());
   Serial.print("\t\t");
 
-  /*
   // Quaternion data
   imu::Quaternion quat = bno.getQuat();
   Serial.print("qW: ");
@@ -99,20 +98,19 @@ void loop(void) {
   Serial.print(quat.y(), 4);
   Serial.print(" qZ: ");
   Serial.print(quat.z(), 4);
-  Serial.print("\t\t");
-  */
+  Serial.print("\n");
 
   /* Display calibration status for each sensor. */
-  uint8_t system, gyro, accel, mag = 0;
-  bno.getCalibration(&system, &gyro, &accel, &mag);
-  Serial.print("CALIBRATION: Sys=");
-  Serial.print(system, DEC);
-  Serial.print(" Gyro=");
-  Serial.print(gyro, DEC);
-  Serial.print(" Accel=");
-  Serial.print(accel, DEC);
-  Serial.print(" Mag=");
-  Serial.println(mag, DEC);
+  // uint8_t system, gyro, accel, mag = 0;
+  // bno.getCalibration(&system, &gyro, &accel, &mag);
+  // Serial.print("CALIBRATION: Sys=");
+  // Serial.print(system, DEC);
+  // Serial.print(" Gyro=");
+  // Serial.print(gyro, DEC);
+  // Serial.print(" Accel=");
+  // Serial.print(accel, DEC);
+  // Serial.print(" Mag=");
+  // Serial.println(mag, DEC);
 
   delay(BNO055_SAMPLERATE_DELAY_MS);
 }

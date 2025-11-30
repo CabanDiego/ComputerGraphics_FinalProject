@@ -10,6 +10,8 @@ const cameraPosition = new THREE.Vector3(0, 10, 20);
 let keys = { left:false, right:false, up:false, down:false };
 let isGameOver = false;
 
+
+
 window.addEventListener('keydown', (e)=>{
     if (e.key === 'ArrowLeft') keys.left = true;
     if (e.key === 'ArrowRight') keys.right = true;

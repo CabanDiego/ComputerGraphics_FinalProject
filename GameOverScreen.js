@@ -23,10 +23,40 @@ export function setupGameOverScreen(onRetryCallback) {
         flexDirection: 'column'
     });
 
+    const h1 = gameOverScreen.querySelector('h1');
+        Object.assign(h1.style, {
+        fontSize: '5rem',       
+        fontWeight: 'bold',     
+        color: 'yellow',       
+        textShadow: '5px 2px 4px black' 
+    }); 
     document.body.appendChild(gameOverScreen);
 
     //Retry button
     const retryButton = document.getElementById('retryButton');
+    Object.assign(retryButton.style, {
+        background: 'linear-gradient(to bottom, #4fc3ff, #007bff)', // glossy gradient
+        color: 'white',
+        border: 'none',
+        borderRadius: '25px',        
+        padding: '15px 50px',       
+        fontSize: '2rem',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
+        textShadow: '1px 1px 2px rgba(0,0,0,0.2)',
+        transition: 'transform 0.2s, box-shadow 0.2s'
+    });
+
+    //Hover effect
+    retryButton.addEventListener('mouseover', () => {
+        retryButton.style.backgroundColor = '#0056b3';
+        retryButton.style.transform = 'scale(1.05)';
+    });
+    retryButton.addEventListener('mouseout', () => {
+        retryButton.style.backgroundColor = '#007BFF';
+        retryButton.style.transform = 'scale(1)';
+    });
     retryButton.addEventListener('click', () => {
         gameOverScreen.style.display = 'none';
         if (onRetryCallback) onRetryCallback();

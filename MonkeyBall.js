@@ -52,6 +52,7 @@ function start()
     renderFrame();
 }
 
+
 function setupPhysicsWorld() 
 {
     let collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
@@ -65,14 +66,25 @@ function setupPhysicsWorld()
         solver,
         collisionConfiguration
     );
-    physicsWorld.setGravity(new Ammo.btVector3(0, -20, 0));
+    physicsWorld.setGravity(new Ammo.btVector3(0, -100, 0));
 }
 
 function setupGraphics() 
 {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbfd1e5);
+    
+    const skyboxCubemap = new THREE.CubeTextureLoader().load([
+    'images/skybox/px.png', 
+    'images/skybox/nx.png', 
+    'images/skybox/py.png', 
+    'images/skybox/ny.png', 
+    'images/skybox/pz.png', 
+    'images/skybox/nz.png'
+    ])
+
+    scene.background = skyboxCubemap;
+
 
     camera = new THREE.PerspectiveCamera(
         60,
@@ -125,7 +137,7 @@ function renderFrame() {
         const ballPos = ball.position.clone();
 
         //Camera offset behind and above the ball
-        const cameraOffset = new THREE.Vector3(0, 20, 50);
+        const cameraOffset = new THREE.Vector3(0, 30, 50);
 
         //Camera position
         const desiredPos = ballPos.clone().add(cameraOffset);
@@ -184,9 +196,10 @@ function createBlock() {
     body.setCollisionFlags(body.getCollisionFlags() | 2); 
     body.setActivationState(4); 
 
-    //Reduce bounciness and increase friction
-    body.setFriction(1.0);     
-    body.setRestitution(0);   
+    //Reduce bounciness and increase friction so the ball doesn't gain energy
+    //Use a higher friction and a low restitution (0 = no bounce)
+    body.setFriction(1.0);
+    body.setRestitution(0.05);
 
 
     window.blockMesh = blockPlane;
@@ -201,8 +214,11 @@ function createBall()
     let quat = {x: 0, y: 0, z: 0, w: 1};
     let mass = 2.0;
 
+    const loader = new THREE.TextureLoader();
+    const ballTexture = loader.load('images/ballTexture.jpg');
+
     //threeJS Section
-    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({color: 0xff0505}));
+    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({ map: ballTexture }));
 
     ball.position.set(pos.x, pos.y, pos.z);
     
@@ -234,9 +250,9 @@ function createBall()
     rigidBodies.push(ball);
 
     //Reduce bounciness and increase friction
-    body.setRestitution(0);   
+    body.setRestitution(0.1);   
     body.setFriction(0.8);   
-    body.setDamping(0.1, 0.1); 
+    body.setDamping(0.3, 0.3); 
     
 }
 

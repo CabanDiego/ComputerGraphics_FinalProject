@@ -1,9 +1,16 @@
-import * as THREE from './modules/three.module.js';
+import * as THREE from '../modules/three.module.js';
+import { setupLoadingScreen } from './LoadingScreen.js';
+import { setupGameOverScreen } from './GameOverScreen.js';
+
+
 
 let physicsWorld, scene, camera, renderer, clock, rigidBodies = [], tmpTrans;
 const cameraPosition = new THREE.Vector3(0, 10, 20);
 
 let keys = { left:false, right:false, up:false, down:false };
+let isGameOver = false;
+
+
 
 window.addEventListener('keydown', (e)=>{
     if (e.key === 'ArrowLeft') keys.left = true;
@@ -20,9 +27,22 @@ window.addEventListener('keyup', (e)=>{
 });
 
 
+const showStartScreen = setupLoadingScreen(() => {
+    start(); 
+});
+
+const gameOverScreen = setupGameOverScreen(() => {
+    gameOverScreen.hide();
+    resetGame();
+});
+
+
 Ammo().then(() => {
     tmpTrans = new Ammo.btTransform();
-    start();
+    
+    setTimeout(() => {
+        showStartScreen(); 
+    }, 1000);
 });
 
 function start() 
@@ -33,6 +53,7 @@ function start()
     createBall();
     renderFrame();
 }
+
 
 function setupPhysicsWorld() 
 {
@@ -47,14 +68,25 @@ function setupPhysicsWorld()
         solver,
         collisionConfiguration
     );
-    physicsWorld.setGravity(new Ammo.btVector3(0, -40, 0));
+    physicsWorld.setGravity(new Ammo.btVector3(0, -100, 0));
 }
 
 function setupGraphics() 
 {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbfd1e5);
+    
+    const skyboxCubemap = new THREE.CubeTextureLoader().load([
+    'images/skybox/px.png', 
+    'images/skybox/nx.png', 
+    'images/skybox/py.png', 
+    'images/skybox/ny.png', 
+    'images/skybox/pz.png', 
+    'images/skybox/nz.png'
+    ])
+
+    scene.background = skyboxCubemap;
+
 
     camera = new THREE.PerspectiveCamera(
         60,
@@ -99,20 +131,32 @@ function setupGraphics()
 function renderFrame() {
     let deltaTime = clock.getDelta();
     updateBlockTilt(deltaTime);
-
     updatePhysics(deltaTime);
 
-    // Make camera follow the ball
+    //Make camera follow the ball
     if (rigidBodies.length > 0) {
-        const ball = rigidBodies[0]; // assuming the first rigidBody is the ball
+        const ball = rigidBodies[0]; 
         const ballPos = ball.position.clone();
-        camera.position.copy(ballPos).add(cameraPosition);
-        camera.lookAt(ballPos);
+
+        //Camera offset behind and above the ball
+        const cameraOffset = new THREE.Vector3(0, 30, 50);
+
+        //Camera position
+        const desiredPos = ballPos.clone().add(cameraOffset);
+
+        //Smoothly move camera n
+        camera.position.lerp(desiredPos, 0.1); 
+
+        //Look slightly ahead of the ball
+        const lookAtPos = ballPos.clone().add(new THREE.Vector3(0, 5, 0));
+        camera.lookAt(lookAtPos);
     }
 
     renderer.render(scene, camera);
     requestAnimationFrame(renderFrame);
+    checkBallOffMap();
 }
+
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
@@ -151,6 +195,15 @@ function createBlock() {
 
     physicsWorld.addRigidBody(body);
 
+    body.setCollisionFlags(body.getCollisionFlags() | 2); 
+    body.setActivationState(4); 
+
+    //Reduce bounciness and increase friction so the ball doesn't gain energy
+    //Use a higher friction and a low restitution (0 = no bounce)
+    body.setFriction(1.0);
+    body.setRestitution(0.05);
+
+
     window.blockMesh = blockPlane;
     window.blockBody = body;
 }
@@ -161,10 +214,13 @@ function createBall()
     let pos = {x: 0, y: 20, z: 0};
     let radius = 2;
     let quat = {x: 0, y: 0, z: 0, w: 1};
-    let mass = 0.5;
+    let mass = 2.0;
+
+    const loader = new THREE.TextureLoader();
+    const ballTexture = loader.load('images/ballTexture.jpg');
 
     //threeJS Section
-    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({color: 0xff0505}));
+    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({ map: ballTexture }));
 
     ball.position.set(pos.x, pos.y, pos.z);
     
@@ -194,6 +250,11 @@ function createBall()
     
     ball.userData.physicsBody = body;
     rigidBodies.push(ball);
+
+    //Reduce bounciness and increase friction
+    body.setRestitution(0.1);   
+    body.setFriction(0.8);   
+    body.setDamping(0.3, 0.3); 
     
 }
 
@@ -223,9 +284,9 @@ function updateBlockTilt(dt) {
     if (!window.blockMesh || !window.blockBody) return;
 
     // TUNING PARAMETERS (change as desired)
-    const tiltSpeed = 2.5;   // responsiveness when a key is held (per second)
-    const returnSpeed = 3.0; // speed when returning to center (per second)
-    const maxTilt = Math.PI / 6; // 30 degrees in radians
+    const tiltSpeed = 3.00;   // responsiveness when a key is held (per second)
+    const returnSpeed = 3.5; // speed when returning to center (per second)
+    const maxTilt = Math.PI / 8; 
 
     // Determine target angles (radians). Start at 0 (flat).
     // ArrowUp should tilt platform away => negative X rotation
@@ -257,7 +318,7 @@ function updateBlockTilt(dt) {
     // Update Ammo physics transform using the mesh quaternion
     // Ensure Ammo body is awake/active so it responds
     try {
-        blockBody.activate();
+        window.blockBody.activate();
     } catch (err) {
         // Some Ammo builds might not throw; ignore if not available
     }
@@ -276,5 +337,49 @@ function updateBlockTilt(dt) {
     q.setFromEuler(new THREE.Euler(blockMesh.rotation.x, blockMesh.rotation.y, blockMesh.rotation.z, 'XYZ'));
     transform.setRotation(new Ammo.btQuaternion(q.x, q.y, q.z, q.w));
 
-    blockBody.setWorldTransform(transform);
+    blockBody.getMotionState().setWorldTransform(transform);
 }
+
+function checkBallOffMap() {
+    if (rigidBodies.length === 0 || isGameOver) 
+        return;
+
+    const ball = rigidBodies[0];
+    //Threshold for ball
+    if (ball.position.y < -50) 
+    { 
+        isGameOver = true;
+        gameOverScreen.show();
+        stopBallPhysics(ball);
+    }
+}
+
+//Freeze ball when it is out of bounds
+function stopBallPhysics(ball) 
+{
+    const body = ball.userData.physicsBody;
+    body.setActivationState(4); 
+    body.setLinearVelocity(new Ammo.btVector3(0,0,0));
+    body.setAngularVelocity(new Ammo.btVector3(0,0,0));
+}
+
+function resetGame() {
+    isGameOver = false;
+    //Remove old ball
+    if (rigidBodies.length > 0) 
+    {
+        const oldBall = rigidBodies.pop();
+        scene.remove(oldBall);
+        physicsWorld.removeRigidBody(oldBall.userData.physicsBody);
+    }
+    
+    //Reset block position
+    if (window.blockMesh) 
+    {
+        window.blockMesh.rotation.set(0,0,0);
+    }
+
+    //Create a new ball
+    createBall();
+}
+

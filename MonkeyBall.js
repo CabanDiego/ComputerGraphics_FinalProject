@@ -148,7 +148,6 @@ function renderFrame() {
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
-    let scale = {x:50, y:2, z:500}; // extended mystical forest platform
     let quat = {x:0, y:0, z:0, w:1};
     let mass = 0;
 
@@ -175,162 +174,227 @@ function createBlock() {
     const dirtTexture = new THREE.CanvasTexture(canvas);
     dirtTexture.wrapS = THREE.RepeatWrapping;
     dirtTexture.wrapT = THREE.RepeatWrapping;
-    dirtTexture.repeat.set(10, 100);
+    dirtTexture.repeat.set(5, 5);
 
-    // Three.js mesh with dirt texture
-    let blockPlane = new THREE.Mesh(
-        new THREE.BoxGeometry(scale.x, scale.y, scale.z),
+    // Create a group to hold all platforms
+    let blockPlane = new THREE.Group();
+    blockPlane.position.set(pos.x, pos.y, pos.z);
+    scene.add(blockPlane);
+
+    // Ammo.js compound shape for physics
+    let compoundShape = new Ammo.btCompoundShape();
+    
+    // multi level pathway with ramps connecting platforms
+    
+    // starting platform for ball spawn
+    let platformStart = new THREE.Mesh(
+        new THREE.BoxGeometry(40, 2, 40),
         new THREE.MeshPhongMaterial({
-            map: dirtTexture,
+            map: dirtTexture.clone(),
             color: 0x8b6f47
         })
     );
-    blockPlane.position.set(pos.x, pos.y, pos.z);
-    blockPlane.quaternion.set(quat.x, quat.y, quat.z, quat.w);
-    blockPlane.castShadow = true;
-    blockPlane.receiveShadow = true;
-    scene.add(blockPlane);
-
-    // platform uses compound shape to include obstacles
-    let compoundShape = new Ammo.btCompoundShape();
+    platformStart.position.set(0, 0, 0);
+    platformStart.castShadow = true;
+    platformStart.receiveShadow = true;
+    blockPlane.add(platformStart);
     
-    // platform collision box
-    let platformShape = new Ammo.btBoxShape(new Ammo.btVector3(scale.x*0.5, scale.y*0.5, scale.z*0.5));
-    platformShape.setMargin(0.05);
-    let platformTransform = new Ammo.btTransform();
-    platformTransform.setIdentity();
-    compoundShape.addChildShape(platformTransform, platformShape);
+    let pStartShape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 20));
+    let pStartTransform = new Ammo.btTransform();
+    pStartTransform.setIdentity();
+    pStartTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
+    compoundShape.addChildShape(pStartTransform, pStartShape);
     
-    // obstacles positioned along the platform - fantasy forest dirt trail theme
-    const obstacles3D = [];
+    // platform 1
+    let platform1 = new THREE.Mesh(
+        new THREE.BoxGeometry(40, 2, 60),
+        new THREE.MeshPhongMaterial({
+            map: dirtTexture.clone(),
+            color: 0x8b6f47
+        })
+    );
+    platform1.position.set(0, 0, -50);
+    platform1.castShadow = true;
+    platform1.receiveShadow = true;
+    blockPlane.add(platform1);
     
-    // DENSE FANTASY FOREST with WINDING PATH
-    // Background trees on the outer edges to create forest atmosphere
-    for (let z = -20; z > -240; z -= 25) {
-        // Left forest edge
-        createTree(blockPlane, -23, 2, z);
-        createTree(blockPlane, -24, 2, z - 10);
-        createBush(blockPlane, -22, 2, z - 5);
+    let p1Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 30));
+    let p1Transform = new Ammo.btTransform();
+    p1Transform.setIdentity();
+    p1Transform.setOrigin(new Ammo.btVector3(0, 0, -50));
+    compoundShape.addChildShape(p1Transform, p1Shape);
+    
+    // ramp 1 connects platform 1 to platform 2
+    let ramp1 = new THREE.Mesh(
+        new THREE.BoxGeometry(40, 2, 32),
+        new THREE.MeshPhongMaterial({
+            map: dirtTexture.clone(),
+            color: 0x8b6f47
+        })
+    );
+    ramp1.position.set(0, 4, -88);
+    ramp1.rotation.x = Math.PI / 12; // gentle slope upward
+    ramp1.castShadow = true;
+    ramp1.receiveShadow = true;
+    blockPlane.add(ramp1);
+    
+    let r1Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 16));
+    let r1Transform = new Ammo.btTransform();
+    r1Transform.setIdentity();
+    r1Transform.setOrigin(new Ammo.btVector3(0, 4, -88));
+    let r1Quat = new Ammo.btQuaternion();
+    r1Quat.setEulerZYX(0, 0, Math.PI / 12);
+    r1Transform.setRotation(r1Quat);
+    compoundShape.addChildShape(r1Transform, r1Shape);
+    
+    // platform 2
+    let platform2 = new THREE.Mesh(
+        new THREE.BoxGeometry(40, 2, 60),
+        new THREE.MeshPhongMaterial({
+            map: dirtTexture.clone(),
+            color: 0x8b6f47
+        })
+    );
+    platform2.position.set(0, 8, -120);
+    platform2.castShadow = true;
+    platform2.receiveShadow = true;
+    blockPlane.add(platform2);
+    
+    let p2Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 30));
+    let p2Transform = new Ammo.btTransform();
+    p2Transform.setIdentity();
+    p2Transform.setOrigin(new Ammo.btVector3(0, 8, -120));
+    compoundShape.addChildShape(p2Transform, p2Shape);
+    
+    // ramp 2 connects platform 2 to platform 3
+    let ramp2 = new THREE.Mesh(
+        new THREE.BoxGeometry(40, 2, 32),
+        new THREE.MeshPhongMaterial({
+            map: dirtTexture.clone(),
+            color: 0x8b6f47
+        })
+    );
+    ramp2.position.set(0, 12, -154);
+    ramp2.rotation.x = Math.PI / 12; // gentle slope upward
+    ramp2.castShadow = true;
+    ramp2.receiveShadow = true;
+    blockPlane.add(ramp2);
+    
+    let r2Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 16));
+    let r2Transform = new Ammo.btTransform();
+    r2Transform.setIdentity();
+    r2Transform.setOrigin(new Ammo.btVector3(0, 12, -154));
+    let r2Quat = new Ammo.btQuaternion();
+    r2Quat.setEulerZYX(0, 0, Math.PI / 12);
+    r2Transform.setRotation(r2Quat);
+    compoundShape.addChildShape(r2Transform, r2Shape);
+    
+    // platform 3
+    let platform3 = new THREE.Mesh(
+        new THREE.BoxGeometry(40, 2, 60),
+        new THREE.MeshPhongMaterial({
+            map: dirtTexture.clone(),
+            color: 0x8b6f47
+        })
+    );
+    platform3.position.set(0, 16, -186);
+    platform3.castShadow = true;
+    platform3.receiveShadow = true;
+    blockPlane.add(platform3);
+    
+    let p3Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 30));
+    let p3Transform = new Ammo.btTransform();
+    p3Transform.setIdentity();
+    p3Transform.setOrigin(new Ammo.btVector3(0, 16, -186));
+    compoundShape.addChildShape(p3Transform, p3Shape);
+    
+    // trees line both sides of the path
+    // starting platform forest
+    createTree(blockPlane, -18, 1, -5);
+    createTree(blockPlane, 18, 1, -5);
+    createTree(blockPlane, -18, 1, -15);
+    createTree(blockPlane, 18, 1, -15);
+    
+    // platform 1 forest
+    for (let z = -30; z > -75; z -= 8) {
+        // left side forest
+        createTree(blockPlane, -18, 1, z);
+        createTree(blockPlane, -16, 1, z - 3);
+        createBush(blockPlane, -14, 1, z - 5);
         
-        // Right forest edge
-        createTree(blockPlane, 23, 2, z);
-        createTree(blockPlane, 24, 2, z - 10);
-        createBush(blockPlane, 22, 2, z - 5);
+        // right side forest
+        createTree(blockPlane, 18, 1, z);
+        createTree(blockPlane, 16, 1, z - 3);
+        createBush(blockPlane, 14, 1, z - 5);
     }
     
-    // CLEAR WINDING PATH - Heavy barriers force side-to-side movement
-    // Path is like a snake - must swerve left and right to pass
+    // platform 2 forest
+    for (let z = -95; z > -145; z -= 8) {
+        // left side forest
+        createTree(blockPlane, -18, 9, z);
+        createTree(blockPlane, -16, 9, z - 3);
+        createBush(blockPlane, -14, 9, z - 5);
+        
+        // right side forest
+        createTree(blockPlane, 18, 9, z);
+        createTree(blockPlane, 16, 9, z - 3);
+        createBush(blockPlane, 14, 9, z - 5);
+    }
     
-    // START - Wide open entrance
-    createTree(blockPlane, -18, 2, -5);
-    createTree(blockPlane, 18, 2, -5);
+    // platform 3 forest
+    for (let z = -165; z > -215; z -= 8) {
+        // left side forest
+        createTree(blockPlane, -18, 17, z);
+        createTree(blockPlane, -16, 17, z - 3);
+        createBush(blockPlane, -14, 17, z - 5);
+        
+        // right side forest
+        createTree(blockPlane, 18, 17, z);
+        createTree(blockPlane, 16, 17, z - 3);
+        createBush(blockPlane, 14, 17, z - 5);
+    }
     
-    // WALL 1: BLOCK LEFT SIDE - Must move RIGHT
-    createTree(blockPlane, -20, 2, -25);
-    createTree(blockPlane, -18, 2, -30);
-    createTree(blockPlane, -16, 2, -35);
-    createBush(blockPlane, -19, 2, -40);
-    createTree(blockPlane, -17, 2, -45);
-    createTree(blockPlane, -19, 2, -50);
-    // Decoration rocks
-    createBush(blockPlane, -12, 2, -30);
-    createBush(blockPlane, -14, 2, -45);
+    // ramps get forest edges too
+    // ramp 1
+    createTree(blockPlane, -18, 5, -82);
+    createTree(blockPlane, 18, 5, -82);
+    createTree(blockPlane, -18, 5, -90);
+    createTree(blockPlane, 18, 5, -90);
     
-    // WALL 2: BLOCK RIGHT SIDE - Must move LEFT
-    createTree(blockPlane, 20, 2, -65);
-    createTree(blockPlane, 18, 2, -70);
-    createTree(blockPlane, 16, 2, -75);
-    createBush(blockPlane, 19, 2, -80);
-    createTree(blockPlane, 17, 2, -85);
-    createTree(blockPlane, 19, 2, -90);
-    // Decoration rocks
-    createBush(blockPlane, 12, 2, -70);
-    createBush(blockPlane, 14, 2, -85);
+    // ramp 2
+    createTree(blockPlane, -18, 13, -148);
+    createTree(blockPlane, 18, 13, -148);
+    createTree(blockPlane, -18, 13, -156);
+    createTree(blockPlane, 18, 13, -156);
     
-    // WALL 3: BLOCK LEFT SIDE - Must move RIGHT
-    createTree(blockPlane, -20, 2, -105);
-    createTree(blockPlane, -18, 2, -110);
-    createTree(blockPlane, -16, 2, -115);
-    createBush(blockPlane, -19, 2, -120);
-    createTree(blockPlane, -17, 2, -125);
-    createTree(blockPlane, -19, 2, -130);
-    // Decoration rocks
-    createBush(blockPlane, -12, 2, -110);
-    createBush(blockPlane, -14, 2, -125);
+    // trees on platform 1
+    createTree(blockPlane, -15, 1, -40);
+    createTree(blockPlane, -12, 1, -50);
+    createBush(blockPlane, -10, 1, -60);
+    createTree(blockPlane, 15, 1, -45);
+    createBush(blockPlane, 12, 1, -55);
     
-    // WALL 4: BLOCK RIGHT SIDE - Must move LEFT
-    createTree(blockPlane, 20, 2, -145);
-    createTree(blockPlane, 18, 2, -150);
-    createTree(blockPlane, 16, 2, -155);
-    createBush(blockPlane, 19, 2, -160);
-    createTree(blockPlane, 17, 2, -165);
-    createTree(blockPlane, 19, 2, -170);
-    // Decoration rocks
-    createBush(blockPlane, 12, 2, -150);
-    createBush(blockPlane, 14, 2, -165);
+    // trees on platform 2
+    createTree(blockPlane, -14, 9, -101);
+    createBush(blockPlane, -10, 9, -111);
+    createTree(blockPlane, -12, 9, -121);
+    createTree(blockPlane, 14, 9, -106);
+    createBush(blockPlane, 10, 9, -116);
+    createTree(blockPlane, 12, 9, -126);
     
-    // WALL 5: BLOCK LEFT SIDE - Must move RIGHT
-    createTree(blockPlane, -20, 2, -185);
-    createTree(blockPlane, -18, 2, -190);
-    createTree(blockPlane, -16, 2, -195);
-    createBush(blockPlane, -19, 2, -200);
-    createTree(blockPlane, -17, 2, -205);
-    createTree(blockPlane, -19, 2, -210);
-    // Decoration rocks
-    createBush(blockPlane, -12, 2, -190);
-    createBush(blockPlane, -14, 2, -205);
+    // trees on platform 3
+    createTree(blockPlane, -15, 17, -167);
+    createBush(blockPlane, -11, 17, -177);
+    createTree(blockPlane, -13, 17, -187);
+    createBush(blockPlane, -9, 17, -192);
+    createTree(blockPlane, 15, 17, -172);
+    createBush(blockPlane, 11, 17, -182);
+    createTree(blockPlane, 13, 17, -192);
+
+    // obstacles positioned along the platform
+    const obstacles3D = [];
     
-    // WALL 6: BLOCK RIGHT SIDE - Must move LEFT
-    createTree(blockPlane, 20, 2, -225);
-    createTree(blockPlane, 18, 2, -230);
-    createTree(blockPlane, 16, 2, -235);
-    // Decoration rocks
-    createBush(blockPlane, 12, 2, -230);
-    
-    // FINISH - Wide open exit
-    createTree(blockPlane, -18, 2, -245);
-    createTree(blockPlane, 18, 2, -245);
-    
-    // now add physics for all obstacles
-    const obstaclePhysicsData = [
-        // starting area
-        { x: -18, y: 3, z: -10, w: 4, h: 6, d: 4 },
-        { x: 18, y: 3, z: -10, w: 4, h: 6, d: 4 },
-        // section 1
-        { x: -18, y: 3, z: -50, w: 4, h: 6, d: 4 },
-        { x: 18, y: 3, z: -55, w: 4, h: 6, d: 4 },
-        { x: -5, y: 3, z: -60, w: 4, h: 6, d: 4 },
-        // section 2
-        { x: -18, y: 3, z: -90, w: 4, h: 6, d: 4 },
-        { x: 6, y: 3, z: -95, w: 4, h: 6, d: 4 },
-        { x: 18, y: 3, z: -105, w: 4, h: 6, d: 4 },
-        // section 3
-        { x: -18, y: 3, z: -125, w: 4, h: 6, d: 4 },
-        { x: 18, y: 3, z: -130, w: 4, h: 6, d: 4 },
-        { x: -7, y: 3, z: -140, w: 4, h: 6, d: 4 },
-        // section 4
-        { x: -18, y: 3, z: -165, w: 4, h: 6, d: 4 },
-        { x: 18, y: 3, z: -170, w: 4, h: 6, d: 4 },
-        { x: 5, y: 3, z: -180, w: 4, h: 6, d: 4 },
-        // section 5
-        { x: -18, y: 3, z: -210, w: 4, h: 6, d: 4 },
-        { x: -6, y: 3, z: -215, w: 4, h: 6, d: 4 },
-        { x: 18, y: 3, z: -220, w: 4, h: 6, d: 4 },
-        // section 6
-        { x: -20, y: 3, z: -260, w: 4, h: 6, d: 4 },
-        { x: 20, y: 3, z: -260, w: 4, h: 6, d: 4 }
-    ];
-    
-    obstaclePhysicsData.forEach(obs => {
-        let obstacleShape = new Ammo.btBoxShape(new Ammo.btVector3(obs.w*0.5, obs.h*0.5, obs.d*0.5));
-        obstacleShape.setMargin(0.05);
-        let obstacleTransform = new Ammo.btTransform();
-        obstacleTransform.setIdentity();
-        obstacleTransform.setOrigin(new Ammo.btVector3(obs.x, obs.y, obs.z));
-        compoundShape.addChildShape(obstacleTransform, obstacleShape);
-    });
-    
-    // create finish line at the end
+    // finish line at end of platform 3
     let finishMesh = new THREE.Mesh(
         new THREE.BoxGeometry(30, 0.5, 5),
         new THREE.MeshPhongMaterial({ 
@@ -339,12 +403,12 @@ function createBlock() {
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(0, 1.5, -248); // near end of 500-unit platform
+    finishMesh.position.set(0, 17.5, -207); // end of platform 3
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
 
-    // physics body for platform+obstacles
+    // physics body for platforms and ramps
     let transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
@@ -541,7 +605,7 @@ function checkBallOffMap() {
 
     const ball = rigidBodies[0];
     //check if ball fell below platform or way past the end
-    if (ball.position.y < -50 || ball.position.z < -280) 
+    if (ball.position.y < -100 || ball.position.z < -280) 
     { 
         isGameOver = true;
         gameOverScreen.show();

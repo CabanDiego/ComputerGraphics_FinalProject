@@ -148,14 +148,42 @@ function renderFrame() {
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
-    let scale = {x:50, y:2, z:300}; // extended platform
+    let scale = {x:50, y:2, z:500}; // extended mystical forest platform
     let quat = {x:0, y:0, z:0, w:1};
     let mass = 0;
 
-    // Three.js mesh
+    // Create dirt texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Brown dirt base
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(0, 0, 512, 512);
+    
+    // Add dirt texture noise
+    for (let i = 0; i < 5000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const size = Math.random() * 3;
+        const shade = Math.floor(Math.random() * 50) + 70;
+        ctx.fillStyle = `rgb(${shade}, ${shade - 20}, ${shade - 40})`;
+        ctx.fillRect(x, y, size, size);
+    }
+    
+    const dirtTexture = new THREE.CanvasTexture(canvas);
+    dirtTexture.wrapS = THREE.RepeatWrapping;
+    dirtTexture.wrapT = THREE.RepeatWrapping;
+    dirtTexture.repeat.set(10, 100);
+
+    // Three.js mesh with dirt texture
     let blockPlane = new THREE.Mesh(
         new THREE.BoxGeometry(scale.x, scale.y, scale.z),
-        new THREE.MeshPhongMaterial({color:0xa0afa4})
+        new THREE.MeshPhongMaterial({
+            map: dirtTexture,
+            color: 0x8b6f47
+        })
     );
     blockPlane.position.set(pos.x, pos.y, pos.z);
     blockPlane.quaternion.set(quat.x, quat.y, quat.z, quat.w);
@@ -173,219 +201,124 @@ function createBlock() {
     platformTransform.setIdentity();
     compoundShape.addChildShape(platformTransform, platformShape);
     
-    // obstacles positioned along the platform
+    // obstacles positioned along the platform - fantasy forest dirt trail theme
     const obstacles3D = [];
     
-    // tunnel 1 - cylinder tunnel
-    const tunnel1Left = new THREE.Mesh(
-        new THREE.CylinderGeometry(2, 2, 10, 8),
-        new THREE.MeshPhongMaterial({ color: 0xff6600 })
-    );
-    tunnel1Left.position.set(-12, 5, -25);
-    tunnel1Left.castShadow = true;
-    tunnel1Left.receiveShadow = true;
-    tunnel1Left.userData.originalColor = 0xff6600;
-    blockPlane.add(tunnel1Left);
-    obstacles.push(tunnel1Left);
+    // DENSE FANTASY FOREST with WINDING PATH
+    // Background trees on the outer edges to create forest atmosphere
+    for (let z = -20; z > -240; z -= 25) {
+        // Left forest edge
+        createTree(blockPlane, -23, 2, z);
+        createTree(blockPlane, -24, 2, z - 10);
+        createBush(blockPlane, -22, 2, z - 5);
+        
+        // Right forest edge
+        createTree(blockPlane, 23, 2, z);
+        createTree(blockPlane, 24, 2, z - 10);
+        createBush(blockPlane, 22, 2, z - 5);
+    }
     
-    const tunnel1Right = new THREE.Mesh(
-        new THREE.CylinderGeometry(2, 2, 10, 8),
-        new THREE.MeshPhongMaterial({ color: 0xff6600 })
-    );
-    tunnel1Right.position.set(12, 5, -25);
-    tunnel1Right.castShadow = true;
-    tunnel1Right.receiveShadow = true;
-    tunnel1Right.userData.originalColor = 0xff6600;
-    blockPlane.add(tunnel1Right);
-    obstacles.push(tunnel1Right);
+    // CLEAR WINDING PATH - Heavy barriers force side-to-side movement
+    // Path is like a snake - must swerve left and right to pass
     
-    // tunnel roof
-    const tunnel1Roof = new THREE.Mesh(
-        new THREE.BoxGeometry(30, 1, 5),
-        new THREE.MeshPhongMaterial({ color: 0xff6600 })
-    );
-    tunnel1Roof.position.set(0, 10, -25);
-    tunnel1Roof.castShadow = true;
-    tunnel1Roof.receiveShadow = true;
-    blockPlane.add(tunnel1Roof);
+    // START - Wide open entrance
+    createTree(blockPlane, -18, 2, -5);
+    createTree(blockPlane, 18, 2, -5);
     
-    // spinning cone obstacles
-    const cone1 = new THREE.Mesh(
-        new THREE.ConeGeometry(3, 6, 8),
-        new THREE.MeshPhongMaterial({ color: 0xcc00ff })
-    );
-    cone1.position.set(-8, 4, -45);
-    cone1.castShadow = true;
-    cone1.receiveShadow = true;
-    cone1.userData.originalColor = 0xcc00ff;
-    blockPlane.add(cone1);
-    obstacles.push(cone1);
+    // WALL 1: BLOCK LEFT SIDE - Must move RIGHT
+    createTree(blockPlane, -20, 2, -25);
+    createTree(blockPlane, -18, 2, -30);
+    createTree(blockPlane, -16, 2, -35);
+    createBush(blockPlane, -19, 2, -40);
+    createTree(blockPlane, -17, 2, -45);
+    createTree(blockPlane, -19, 2, -50);
+    // Decoration rocks
+    createBush(blockPlane, -12, 2, -30);
+    createBush(blockPlane, -14, 2, -45);
     
-    const cone2 = new THREE.Mesh(
-        new THREE.ConeGeometry(3, 6, 8),
-        new THREE.MeshPhongMaterial({ color: 0xcc00ff })
-    );
-    cone2.position.set(8, 4, -50);
-    cone2.castShadow = true;
-    cone2.receiveShadow = true;
-    cone2.userData.originalColor = 0xcc00ff;
-    blockPlane.add(cone2);
-    obstacles.push(cone2);
+    // WALL 2: BLOCK RIGHT SIDE - Must move LEFT
+    createTree(blockPlane, 20, 2, -65);
+    createTree(blockPlane, 18, 2, -70);
+    createTree(blockPlane, 16, 2, -75);
+    createBush(blockPlane, 19, 2, -80);
+    createTree(blockPlane, 17, 2, -85);
+    createTree(blockPlane, 19, 2, -90);
+    // Decoration rocks
+    createBush(blockPlane, 12, 2, -70);
+    createBush(blockPlane, 14, 2, -85);
     
-    // sphere obstacles
-    const sphere1 = new THREE.Mesh(
-        new THREE.SphereGeometry(3, 16, 16),
-        new THREE.MeshPhongMaterial({ color: 0x00ff99 })
-    );
-    sphere1.position.set(0, 4, -55);
-    sphere1.castShadow = true;
-    sphere1.receiveShadow = true;
-    sphere1.userData.originalColor = 0x00ff99;
-    blockPlane.add(sphere1);
-    obstacles.push(sphere1);
+    // WALL 3: BLOCK LEFT SIDE - Must move RIGHT
+    createTree(blockPlane, -20, 2, -105);
+    createTree(blockPlane, -18, 2, -110);
+    createTree(blockPlane, -16, 2, -115);
+    createBush(blockPlane, -19, 2, -120);
+    createTree(blockPlane, -17, 2, -125);
+    createTree(blockPlane, -19, 2, -130);
+    // Decoration rocks
+    createBush(blockPlane, -12, 2, -110);
+    createBush(blockPlane, -14, 2, -125);
     
-    // tunnel 2 - torus obstacles
-    const torus1 = new THREE.Mesh(
-        new THREE.TorusGeometry(4, 1.5, 16, 32),
-        new THREE.MeshPhongMaterial({ color: 0x00ff99 })
-    );
-    torus1.rotation.x = Math.PI / 2;
-    torus1.position.set(-12, 5, -75);
-    torus1.castShadow = true;
-    torus1.receiveShadow = true;
-    torus1.userData.originalColor = 0x00ff99;
-    blockPlane.add(torus1);
-    obstacles.push(torus1);
+    // WALL 4: BLOCK RIGHT SIDE - Must move LEFT
+    createTree(blockPlane, 20, 2, -145);
+    createTree(blockPlane, 18, 2, -150);
+    createTree(blockPlane, 16, 2, -155);
+    createBush(blockPlane, 19, 2, -160);
+    createTree(blockPlane, 17, 2, -165);
+    createTree(blockPlane, 19, 2, -170);
+    // Decoration rocks
+    createBush(blockPlane, 12, 2, -150);
+    createBush(blockPlane, 14, 2, -165);
     
-    const torus2 = new THREE.Mesh(
-        new THREE.TorusGeometry(4, 1.5, 16, 32),
-        new THREE.MeshPhongMaterial({ color: 0x00ff99 })
-    );
-    torus2.rotation.x = Math.PI / 2;
-    torus2.position.set(12, 5, -75);
-    torus2.castShadow = true;
-    torus2.receiveShadow = true;
-    torus2.userData.originalColor = 0x00ff99;
-    blockPlane.add(torus2);
-    obstacles.push(torus2);
+    // WALL 5: BLOCK LEFT SIDE - Must move RIGHT
+    createTree(blockPlane, -20, 2, -185);
+    createTree(blockPlane, -18, 2, -190);
+    createTree(blockPlane, -16, 2, -195);
+    createBush(blockPlane, -19, 2, -200);
+    createTree(blockPlane, -17, 2, -205);
+    createTree(blockPlane, -19, 2, -210);
+    // Decoration rocks
+    createBush(blockPlane, -12, 2, -190);
+    createBush(blockPlane, -14, 2, -205);
     
-    // dodecahedron obstacles (cool 12-sided shapes)
-    const dodeca1 = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(3),
-        new THREE.MeshPhongMaterial({ color: 0xffcc00 })
-    );
-    dodeca1.position.set(-8, 4, -100);
-    dodeca1.castShadow = true;
-    dodeca1.receiveShadow = true;
-    dodeca1.userData.originalColor = 0xffcc00;
-    blockPlane.add(dodeca1);
-    obstacles.push(dodeca1);
+    // WALL 6: BLOCK RIGHT SIDE - Must move LEFT
+    createTree(blockPlane, 20, 2, -225);
+    createTree(blockPlane, 18, 2, -230);
+    createTree(blockPlane, 16, 2, -235);
+    // Decoration rocks
+    createBush(blockPlane, 12, 2, -230);
     
-    const dodeca2 = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(3),
-        new THREE.MeshPhongMaterial({ color: 0xffcc00 })
-    );
-    dodeca2.position.set(8, 4, -105);
-    dodeca2.castShadow = true;
-    dodeca2.receiveShadow = true;
-    dodeca2.userData.originalColor = 0xffcc00;
-    blockPlane.add(dodeca2);
-    obstacles.push(dodeca2);
-    
-    // octahedron (8-sided gem shapes)
-    const octa1 = new THREE.Mesh(
-        new THREE.OctahedronGeometry(4),
-        new THREE.MeshPhongMaterial({ color: 0xff00ff })
-    );
-    octa1.position.set(0, 5, -125);
-    octa1.castShadow = true;
-    octa1.receiveShadow = true;
-    octa1.userData.originalColor = 0xff00ff;
-    blockPlane.add(octa1);
-    obstacles.push(octa1);
-    
-    // tunnel 3 - cylinder pillars
-    const pillar1 = new THREE.Mesh(
-        new THREE.CylinderGeometry(2.5, 2.5, 12, 8),
-        new THREE.MeshPhongMaterial({ color: 0xff0099 })
-    );
-    pillar1.position.set(-10, 6, -155);
-    pillar1.castShadow = true;
-    pillar1.receiveShadow = true;
-    pillar1.userData.originalColor = 0xff0099;
-    blockPlane.add(pillar1);
-    obstacles.push(pillar1);
-    
-    const pillar2 = new THREE.Mesh(
-        new THREE.CylinderGeometry(2.5, 2.5, 12, 8),
-        new THREE.MeshPhongMaterial({ color: 0xff0099 })
-    );
-    pillar2.position.set(10, 6, -155);
-    pillar2.castShadow = true;
-    pillar2.receiveShadow = true;
-    pillar2.userData.originalColor = 0xff0099;
-    blockPlane.add(pillar2);
-    obstacles.push(pillar2);
-    
-    // tunnel 3 roof
-    const tunnel3Roof = new THREE.Mesh(
-        new THREE.BoxGeometry(26, 1, 5),
-        new THREE.MeshPhongMaterial({ color: 0xff0099 })
-    );
-    tunnel3Roof.position.set(0, 12, -155);
-    tunnel3Roof.castShadow = true;
-    tunnel3Roof.receiveShadow = true;
-    blockPlane.add(tunnel3Roof);
-    
-    // icosahedron obstacles before finish (20-sided)
-    const icosa1 = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(3),
-        new THREE.MeshPhongMaterial({ color: 0x00ffff })
-    );
-    icosa1.position.set(-6, 4, -180);
-    icosa1.castShadow = true;
-    icosa1.receiveShadow = true;
-    icosa1.userData.originalColor = 0x00ffff;
-    blockPlane.add(icosa1);
-    obstacles.push(icosa1);
-    
-    const icosa2 = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(3),
-        new THREE.MeshPhongMaterial({ color: 0x00ffff })
-    );
-    icosa2.position.set(6, 4, -185);
-    icosa2.castShadow = true;
-    icosa2.receiveShadow = true;
-    icosa2.userData.originalColor = 0x00ffff;
-    blockPlane.add(icosa2);
-    obstacles.push(icosa2);
+    // FINISH - Wide open exit
+    createTree(blockPlane, -18, 2, -245);
+    createTree(blockPlane, 18, 2, -245);
     
     // now add physics for all obstacles
     const obstaclePhysicsData = [
-        // cylinders as boxes for physics
-        { x: -12, y: 5, z: -25, w: 4, h: 10, d: 4 },
-        { x: 12, y: 5, z: -25, w: 4, h: 10, d: 4 },
-        { x: 0, y: 10, z: -25, w: 30, h: 1, d: 5 },
-        // cones as boxes
-        { x: -8, y: 4, z: -45, w: 6, h: 6, d: 6 },
-        { x: 8, y: 4, z: -50, w: 6, h: 6, d: 6 },
-        // sphere
-        { x: 0, y: 4, z: -55, w: 6, h: 6, d: 6 },
-        // torus
-        { x: -12, y: 5, z: -75, w: 8, h: 3, d: 8 },
-        { x: 12, y: 5, z: -75, w: 8, h: 3, d: 8 },
-        // dodecahedrons
-        { x: -8, y: 4, z: -100, w: 6, h: 6, d: 6 },
-        { x: 8, y: 4, z: -105, w: 6, h: 6, d: 6 },
-        // octahedron
-        { x: 0, y: 5, z: -125, w: 8, h: 8, d: 8 },
-        // pillars
-        { x: -10, y: 6, z: -155, w: 5, h: 12, d: 5 },
-        { x: 10, y: 6, z: -155, w: 5, h: 12, d: 5 },
-        { x: 0, y: 12, z: -155, w: 26, h: 1, d: 5 },
-        // icosahedrons
-        { x: -6, y: 4, z: -180, w: 6, h: 6, d: 6 },
-        { x: 6, y: 4, z: -185, w: 6, h: 6, d: 6 }
+        // starting area
+        { x: -18, y: 3, z: -10, w: 4, h: 6, d: 4 },
+        { x: 18, y: 3, z: -10, w: 4, h: 6, d: 4 },
+        // section 1
+        { x: -18, y: 3, z: -50, w: 4, h: 6, d: 4 },
+        { x: 18, y: 3, z: -55, w: 4, h: 6, d: 4 },
+        { x: -5, y: 3, z: -60, w: 4, h: 6, d: 4 },
+        // section 2
+        { x: -18, y: 3, z: -90, w: 4, h: 6, d: 4 },
+        { x: 6, y: 3, z: -95, w: 4, h: 6, d: 4 },
+        { x: 18, y: 3, z: -105, w: 4, h: 6, d: 4 },
+        // section 3
+        { x: -18, y: 3, z: -125, w: 4, h: 6, d: 4 },
+        { x: 18, y: 3, z: -130, w: 4, h: 6, d: 4 },
+        { x: -7, y: 3, z: -140, w: 4, h: 6, d: 4 },
+        // section 4
+        { x: -18, y: 3, z: -165, w: 4, h: 6, d: 4 },
+        { x: 18, y: 3, z: -170, w: 4, h: 6, d: 4 },
+        { x: 5, y: 3, z: -180, w: 4, h: 6, d: 4 },
+        // section 5
+        { x: -18, y: 3, z: -210, w: 4, h: 6, d: 4 },
+        { x: -6, y: 3, z: -215, w: 4, h: 6, d: 4 },
+        { x: 18, y: 3, z: -220, w: 4, h: 6, d: 4 },
+        // section 6
+        { x: -20, y: 3, z: -260, w: 4, h: 6, d: 4 },
+        { x: 20, y: 3, z: -260, w: 4, h: 6, d: 4 }
     ];
     
     obstaclePhysicsData.forEach(obs => {
@@ -406,7 +339,7 @@ function createBlock() {
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(0, 1.5, -215);
+    finishMesh.position.set(0, 1.5, -248); // near end of 500-unit platform
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
@@ -607,8 +540,8 @@ function checkBallOffMap() {
         return;
 
     const ball = rigidBodies[0];
-    //Threshold for ball
-    if (ball.position.y < -50) 
+    //check if ball fell below platform or way past the end
+    if (ball.position.y < -50 || ball.position.z < -280) 
     { 
         isGameOver = true;
         gameOverScreen.show();
@@ -623,6 +556,272 @@ function stopBallPhysics(ball)
     body.setActivationState(4); 
     body.setLinearVelocity(new Ammo.btVector3(0,0,0));
     body.setAngularVelocity(new Ammo.btVector3(0,0,0));
+}
+
+// create racing barrier obstacle
+function createBarrier(parent, x, y, z, rotation = 0) {
+    const group = new THREE.Group();
+    
+    // striped barrier
+    const barrier = new THREE.Mesh(
+        new THREE.BoxGeometry(8, 2, 1),
+        new THREE.MeshPhongMaterial({ 
+            color: 0xff0000,
+            flatShading: true
+        })
+    );
+    barrier.position.set(0, 1, 0);
+    barrier.castShadow = true;
+    barrier.userData.originalColor = 0xff0000;
+    group.add(barrier);
+    obstacles.push(barrier);
+    
+    // white stripe
+    const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(8.2, 0.5, 1.1),
+        new THREE.MeshPhongMaterial({ color: 0xffffff })
+    );
+    stripe.position.set(0, 1, 0);
+    stripe.castShadow = true;
+    stripe.userData.originalColor = 0xffffff;
+    group.add(stripe);
+    obstacles.push(stripe);
+    
+    group.position.set(x, y, z);
+    group.rotation.y = rotation;
+    parent.add(group);
+}
+
+// create tire stack obstacle
+function createTireStack(parent, x, y, z) {
+    const group = new THREE.Group();
+    const tireColor = 0x1a1a1a;
+    
+    for (let i = 0; i < 3; i++) {
+        const tire = new THREE.Mesh(
+            new THREE.TorusGeometry(1.2, 0.5, 8, 12),
+            new THREE.MeshPhongMaterial({ color: tireColor })
+        );
+        tire.position.set(0, 0.5 + i * 1, 0);
+        tire.rotation.x = Math.PI / 2;
+        tire.castShadow = true;
+        tire.userData.originalColor = tireColor;
+        group.add(tire);
+        obstacles.push(tire);
+    }
+    
+    group.position.set(x, y, z);
+    parent.add(group);
+}
+
+// create checkpoint arch
+function createCheckpoint(parent, x, y, z, color) {
+    const group = new THREE.Group();
+    
+    // left pillar
+    const leftPillar = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 8, 1.5),
+        new THREE.MeshPhongMaterial({ 
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.3
+        })
+    );
+    leftPillar.position.set(-8, 4, 0);
+    leftPillar.castShadow = true;
+    leftPillar.userData.originalColor = color;
+    group.add(leftPillar);
+    obstacles.push(leftPillar);
+    
+    // right pillar
+    const rightPillar = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5, 8, 1.5),
+        new THREE.MeshPhongMaterial({ 
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.3
+        })
+    );
+    rightPillar.position.set(8, 4, 0);
+    rightPillar.castShadow = true;
+    rightPillar.userData.originalColor = color;
+    group.add(rightPillar);
+    obstacles.push(rightPillar);
+    
+    // top arch
+    const arch = new THREE.Mesh(
+        new THREE.BoxGeometry(16, 1.5, 1.5),
+        new THREE.MeshPhongMaterial({ 
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.4
+        })
+    );
+    arch.position.set(0, 8, 0);
+    arch.castShadow = true;
+    arch.userData.originalColor = color;
+    group.add(arch);
+    obstacles.push(arch);
+    
+    group.position.set(x, y, z);
+    parent.add(group);
+}
+
+// create cone obstacle
+function createCone(parent, x, y, z) {
+    const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(1, 3, 8),
+        new THREE.MeshPhongMaterial({ 
+            color: 0xff6600,
+            flatShading: true
+        })
+    );
+    cone.position.set(x, y + 1.5, z);
+    cone.castShadow = true;
+    cone.userData.originalColor = 0xff6600;
+    parent.add(cone);
+    obstacles.push(cone);
+    
+    // white stripe
+    const stripe = new THREE.Mesh(
+        new THREE.ConeGeometry(1.05, 1, 8),
+        new THREE.MeshPhongMaterial({ color: 0xffffff })
+    );
+    stripe.position.set(x, y + 2, z);
+    stripe.castShadow = true;
+    stripe.userData.originalColor = 0xffffff;
+    parent.add(stripe);
+    obstacles.push(stripe);
+}
+
+// create fantasy tree
+function createTree(parent, x, y, z) {
+    const group = new THREE.Group();
+    
+    // Brown trunk
+    const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.8, 1, 8, 8),
+        new THREE.MeshPhongMaterial({ color: 0x4a2511 })
+    );
+    trunk.position.set(0, 4, 0);
+    trunk.castShadow = true;
+    trunk.userData.originalColor = 0x4a2511;
+    group.add(trunk);
+    obstacles.push(trunk);
+    
+    // Green foliage - bottom layer
+    const foliage1 = new THREE.Mesh(
+        new THREE.ConeGeometry(3.5, 5, 8),
+        new THREE.MeshPhongMaterial({ color: 0x228B22 })
+    );
+    foliage1.position.set(0, 9, 0);
+    foliage1.castShadow = true;
+    foliage1.userData.originalColor = 0x228B22;
+    group.add(foliage1);
+    obstacles.push(foliage1);
+    
+    // Green foliage - middle layer
+    const foliage2 = new THREE.Mesh(
+        new THREE.ConeGeometry(2.8, 4, 8),
+        new THREE.MeshPhongMaterial({ color: 0x2E8B57 })
+    );
+    foliage2.position.set(0, 12, 0);
+    foliage2.castShadow = true;
+    foliage2.userData.originalColor = 0x2E8B57;
+    group.add(foliage2);
+    obstacles.push(foliage2);
+    
+    // Green foliage - top
+    const foliage3 = new THREE.Mesh(
+        new THREE.ConeGeometry(2, 3, 8),
+        new THREE.MeshPhongMaterial({ color: 0x32CD32 })
+    );
+    foliage3.position.set(0, 14.5, 0);
+    foliage3.castShadow = true;
+    foliage3.userData.originalColor = 0x32CD32;
+    group.add(foliage3);
+    obstacles.push(foliage3);
+    
+    group.position.set(x, y, z);
+    parent.add(group);
+}
+
+// create bush
+function createBush(parent, x, y, z) {
+    const group = new THREE.Group();
+    
+    // Main bush sphere
+    const bush = new THREE.Mesh(
+        new THREE.SphereGeometry(1.5, 8, 8),
+        new THREE.MeshPhongMaterial({ color: 0x228B22 })
+    );
+    bush.position.set(0, 1.5, 0);
+    bush.castShadow = true;
+    bush.userData.originalColor = 0x228B22;
+    group.add(bush);
+    obstacles.push(bush);
+    
+    // Additional bush clusters
+    const bush2 = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 8, 8),
+        new THREE.MeshPhongMaterial({ color: 0x2E8B57 })
+    );
+    bush2.position.set(1, 1.2, 0.5);
+    bush2.castShadow = true;
+    bush2.userData.originalColor = 0x2E8B57;
+    group.add(bush2);
+    obstacles.push(bush2);
+    
+    const bush3 = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 8, 8),
+        new THREE.MeshPhongMaterial({ color: 0x3CB371 })
+    );
+    bush3.position.set(-0.8, 1, -0.5);
+    bush3.castShadow = true;
+    bush3.userData.originalColor = 0x3CB371;
+    group.add(bush3);
+    obstacles.push(bush3);
+    
+    group.position.set(x, y, z);
+    parent.add(group);
+}
+
+// create colorful stylized obstacle
+function createSimpleObstacle(parent, x, y, z, color) {
+    const group = new THREE.Group();
+    
+    // main body - cylinder
+    const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(2, 2, 6, 8),
+        new THREE.MeshPhongMaterial({ 
+            color: color,
+            flatShading: true
+        })
+    );
+    body.position.set(0, 3, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    body.userData.originalColor = color;
+    group.add(body);
+    obstacles.push(body);
+    
+    // top piece
+    const top = new THREE.Mesh(
+        new THREE.SphereGeometry(1.5, 8, 8),
+        new THREE.MeshPhongMaterial({ 
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.3
+        })
+    );
+    top.position.set(0, 6.5, 0);
+    top.castShadow = true;
+    top.userData.originalColor = color;
+    group.add(top);
+    obstacles.push(top);
+    
+    group.position.set(x, y, z);
+    parent.add(group);
 }
 
 function resetGame() {
@@ -641,12 +840,15 @@ function resetGame() {
         window.blockMesh.rotation.set(0,0,0);
     }
 
-    // reset obstacles back to orange
+    // reset obstacles back to original color
     obstacles.forEach(obstacle => {
-        obstacle.material.color.setHex(obstacle.userData.originalColor);
+        if (obstacle.material) {
+            obstacle.material.color.setHex(obstacle.userData.originalColor);
+        }
     });
 
     //Create a new ball
     createBall();
 }
+
 

@@ -80,13 +80,13 @@ void loop(void) {
   imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
 
   /* Display the floating point data */
-  Serial.print("X: ");
-  Serial.print(euler.x());
-  Serial.print(" Y: ");
-  Serial.print(euler.y());
-  Serial.print(" Z: ");
-  Serial.print(euler.z());
-  Serial.print("\t\t");
+  // Serial.print("X: ");
+  // Serial.print(euler.x());
+  // Serial.print(" Y: ");
+  // Serial.print(euler.y());
+  // Serial.print(" Z: ");
+  // Serial.print(euler.z());
+  // Serial.print("\t\t");
 
   // Quaternion data
   imu::Quaternion quat = bno.getQuat();

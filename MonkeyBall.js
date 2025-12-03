@@ -188,7 +188,7 @@ function createBlock() {
     
     // starting platform for ball spawn
     let platformStart = new THREE.Mesh(
-        new THREE.BoxGeometry(40, 2, 40),
+        new THREE.BoxGeometry(30, 2, 30),
         new THREE.MeshPhongMaterial({
             map: dirtTexture.clone(),
             color: 0x8b6f47
@@ -199,197 +199,249 @@ function createBlock() {
     platformStart.receiveShadow = true;
     blockPlane.add(platformStart);
     
-    let pStartShape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 20));
+    let pStartShape = new Ammo.btBoxShape(new Ammo.btVector3(15, 1, 15));
     let pStartTransform = new Ammo.btTransform();
     pStartTransform.setIdentity();
     pStartTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
     compoundShape.addChildShape(pStartTransform, pStartShape);
     
-    // platform 1
-    let platform1 = new THREE.Mesh(
-        new THREE.BoxGeometry(40, 2, 60),
-        new THREE.MeshPhongMaterial({
-            map: dirtTexture.clone(),
-            color: 0x8b6f47
-        })
-    );
-    platform1.position.set(0, 0, -50);
+    // platform 1 - curved with segments
+    let platform1 = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+        let segment = new THREE.Mesh(
+            new THREE.BoxGeometry(30, 2, 8),
+            new THREE.MeshPhongMaterial({
+                map: dirtTexture.clone(),
+                color: 0x8b6f47
+            })
+        );
+        segment.position.z = -16 - (i * 8);
+        segment.rotation.y = (i - 2) * 0.03;
+        segment.castShadow = true;
+        segment.receiveShadow = true;
+        platform1.add(segment);
+    }
+    platform1.position.set(0, 0, 0);
     platform1.castShadow = true;
     platform1.receiveShadow = true;
     blockPlane.add(platform1);
     
-    let p1Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 30));
-    let p1Transform = new Ammo.btTransform();
-    p1Transform.setIdentity();
-    p1Transform.setOrigin(new Ammo.btVector3(0, 0, -50));
-    compoundShape.addChildShape(p1Transform, p1Shape);
+    // platform 1 physics - multiple segments
+    for (let i = 0; i < 5; i++) {
+        let p1Shape = new Ammo.btBoxShape(new Ammo.btVector3(15, 1, 4));
+        let p1Transform = new Ammo.btTransform();
+        p1Transform.setIdentity();
+        p1Transform.setOrigin(new Ammo.btVector3(0, 0, -16 - (i * 8)));
+        let p1Quat = new Ammo.btQuaternion();
+        p1Quat.setEulerZYX((i - 2) * 0.03, 0, 0);
+        p1Transform.setRotation(p1Quat);
+        compoundShape.addChildShape(p1Transform, p1Shape);
+    }
     
     // ramp 1 connects platform 1 to platform 2
     let ramp1 = new THREE.Mesh(
-        new THREE.BoxGeometry(40, 2, 32),
+        new THREE.BoxGeometry(35, 2, 50),
         new THREE.MeshPhongMaterial({
             map: dirtTexture.clone(),
             color: 0x8b6f47
         })
     );
-    ramp1.position.set(0, 4, -88);
-    ramp1.rotation.x = Math.PI / 12; // gentle slope upward
+    ramp1.position.set(-3, 2.5, -70);
+    ramp1.rotation.x = Math.PI / 20; // very gentle slope
+    ramp1.rotation.y = -0.1; // slight curve to left
     ramp1.castShadow = true;
     ramp1.receiveShadow = true;
     blockPlane.add(ramp1);
     
-    let r1Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 16));
+    let r1Shape = new Ammo.btBoxShape(new Ammo.btVector3(17.5, 1, 25));
     let r1Transform = new Ammo.btTransform();
     r1Transform.setIdentity();
-    r1Transform.setOrigin(new Ammo.btVector3(0, 4, -88));
+    r1Transform.setOrigin(new Ammo.btVector3(-3, 2.5, -70));
     let r1Quat = new Ammo.btQuaternion();
-    r1Quat.setEulerZYX(0, 0, Math.PI / 12);
+    r1Quat.setEulerZYX(-0.1, 0, Math.PI / 20);
     r1Transform.setRotation(r1Quat);
     compoundShape.addChildShape(r1Transform, r1Shape);
     
-    // platform 2
-    let platform2 = new THREE.Mesh(
-        new THREE.BoxGeometry(40, 2, 60),
-        new THREE.MeshPhongMaterial({
-            map: dirtTexture.clone(),
-            color: 0x8b6f47
-        })
-    );
-    platform2.position.set(0, 8, -120);
+    // platform 2 - curved offset to the left
+    let platform2 = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+        let segment = new THREE.Mesh(
+            new THREE.BoxGeometry(30, 2, 8),
+            new THREE.MeshPhongMaterial({
+                map: dirtTexture.clone(),
+                color: 0x8b6f47
+            })
+        );
+        segment.position.x = -i * 1.2;
+        segment.position.z = -96 - (i * 8);
+        segment.rotation.y = -i * 0.04;
+        segment.castShadow = true;
+        segment.receiveShadow = true;
+        platform2.add(segment);
+    }
+    platform2.position.set(0, 2.5, 0);
     platform2.castShadow = true;
     platform2.receiveShadow = true;
     blockPlane.add(platform2);
     
-    let p2Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 30));
-    let p2Transform = new Ammo.btTransform();
-    p2Transform.setIdentity();
-    p2Transform.setOrigin(new Ammo.btVector3(0, 8, -120));
-    compoundShape.addChildShape(p2Transform, p2Shape);
+    // platform 2 physics - multiple segments
+    for (let i = 0; i < 5; i++) {
+        let p2Shape = new Ammo.btBoxShape(new Ammo.btVector3(15, 1, 4));
+        let p2Transform = new Ammo.btTransform();
+        p2Transform.setIdentity();
+        p2Transform.setOrigin(new Ammo.btVector3(-i * 1.2, 2.5, -96 - (i * 8)));
+        let p2Quat = new Ammo.btQuaternion();
+        p2Quat.setEulerZYX(-i * 0.04, 0, 0);
+        p2Transform.setRotation(p2Quat);
+        compoundShape.addChildShape(p2Transform, p2Shape);
+    }
     
     // ramp 2 connects platform 2 to platform 3
     let ramp2 = new THREE.Mesh(
-        new THREE.BoxGeometry(40, 2, 32),
+        new THREE.BoxGeometry(35, 2, 50),
         new THREE.MeshPhongMaterial({
             map: dirtTexture.clone(),
             color: 0x8b6f47
         })
     );
-    ramp2.position.set(0, 12, -154);
-    ramp2.rotation.x = Math.PI / 12; // gentle slope upward
+    ramp2.position.set(0, 7.75, -150);
+    ramp2.rotation.x = Math.PI / 20; // very gentle slope
+    ramp2.rotation.y = 0.1; // slight curve to right
     ramp2.castShadow = true;
     ramp2.receiveShadow = true;
     blockPlane.add(ramp2);
     
-    let r2Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 16));
+    let r2Shape = new Ammo.btBoxShape(new Ammo.btVector3(17.5, 1, 25));
     let r2Transform = new Ammo.btTransform();
     r2Transform.setIdentity();
-    r2Transform.setOrigin(new Ammo.btVector3(0, 12, -154));
+    r2Transform.setOrigin(new Ammo.btVector3(0, 7.75, -150));
     let r2Quat = new Ammo.btQuaternion();
-    r2Quat.setEulerZYX(0, 0, Math.PI / 12);
+    r2Quat.setEulerZYX(0.1, 0, Math.PI / 20);
     r2Transform.setRotation(r2Quat);
     compoundShape.addChildShape(r2Transform, r2Shape);
     
-    // platform 3
-    let platform3 = new THREE.Mesh(
-        new THREE.BoxGeometry(40, 2, 60),
-        new THREE.MeshPhongMaterial({
-            map: dirtTexture.clone(),
-            color: 0x8b6f47
-        })
-    );
-    platform3.position.set(0, 16, -186);
+    // platform 3 - curved offset to the right
+    let platform3 = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+        let segment = new THREE.Mesh(
+            new THREE.BoxGeometry(30, 2, 8),
+            new THREE.MeshPhongMaterial({
+                map: dirtTexture.clone(),
+                color: 0x8b6f47
+            })
+        );
+        segment.position.x = i * 1.2;
+        segment.position.z = -176 - (i * 8);
+        segment.rotation.y = i * 0.04;
+        segment.castShadow = true;
+        segment.receiveShadow = true;
+        platform3.add(segment);
+    }
+    platform3.position.set(0, 8, 0);
     platform3.castShadow = true;
     platform3.receiveShadow = true;
     blockPlane.add(platform3);
     
-    let p3Shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 1, 30));
-    let p3Transform = new Ammo.btTransform();
-    p3Transform.setIdentity();
-    p3Transform.setOrigin(new Ammo.btVector3(0, 16, -186));
-    compoundShape.addChildShape(p3Transform, p3Shape);
+    // platform 3 physics - multiple segments
+    for (let i = 0; i < 5; i++) {
+        let p3Shape = new Ammo.btBoxShape(new Ammo.btVector3(15, 1, 4));
+        let p3Transform = new Ammo.btTransform();
+        p3Transform.setIdentity();
+        p3Transform.setOrigin(new Ammo.btVector3(i * 1.2, 8, -176 - (i * 8)));
+        let p3Quat = new Ammo.btQuaternion();
+        p3Quat.setEulerZYX(i * 0.04, 0, 0);
+        p3Transform.setRotation(p3Quat);
+        compoundShape.addChildShape(p3Transform, p3Shape);
+    }
     
     // trees line both sides of the path
     // starting platform forest
-    createTree(blockPlane, -18, 1, -5);
-    createTree(blockPlane, 18, 1, -5);
-    createTree(blockPlane, -18, 1, -15);
-    createTree(blockPlane, 18, 1, -15);
+    createTree(blockPlane, -13, 1, -5);
+    createTree(blockPlane, 13, 1, -5);
+    createTree(blockPlane, -13, 1, -15);
+    createTree(blockPlane, 13, 1, -15);
+    createBush(blockPlane, -11, 1, -10);
+    createBush(blockPlane, 11, 1, -10);
     
     // platform 1 forest
-    for (let z = -30; z > -75; z -= 8) {
+    for (let z = -18; z > -52; z -= 6) {
         // left side forest
-        createTree(blockPlane, -18, 1, z);
-        createTree(blockPlane, -16, 1, z - 3);
-        createBush(blockPlane, -14, 1, z - 5);
+        createTree(blockPlane, -13, 1, z);
+        createTree(blockPlane, -11, 1, z - 2);
+        createBush(blockPlane, -12, 1, z - 4);
         
         // right side forest
-        createTree(blockPlane, 18, 1, z);
-        createTree(blockPlane, 16, 1, z - 3);
-        createBush(blockPlane, 14, 1, z - 5);
+        createTree(blockPlane, 13, 1, z);
+        createTree(blockPlane, 11, 1, z - 2);
+        createBush(blockPlane, 12, 1, z - 4);
     }
     
     // platform 2 forest
-    for (let z = -95; z > -145; z -= 8) {
+    for (let z = -98; z > -132; z -= 6) {
         // left side forest
-        createTree(blockPlane, -18, 9, z);
-        createTree(blockPlane, -16, 9, z - 3);
-        createBush(blockPlane, -14, 9, z - 5);
+        createTree(blockPlane, -19, 3.5, z);
+        createTree(blockPlane, -17, 3.5, z - 2);
+        createBush(blockPlane, -18, 3.5, z - 4);
         
         // right side forest
-        createTree(blockPlane, 18, 9, z);
-        createTree(blockPlane, 16, 9, z - 3);
-        createBush(blockPlane, 14, 9, z - 5);
+        createTree(blockPlane, 7, 3.5, z);
+        createTree(blockPlane, 5, 3.5, z - 2);
+        createBush(blockPlane, 6, 3.5, z - 4);
     }
     
     // platform 3 forest
-    for (let z = -165; z > -215; z -= 8) {
+    for (let z = -178; z > -212; z -= 6) {
         // left side forest
-        createTree(blockPlane, -18, 17, z);
-        createTree(blockPlane, -16, 17, z - 3);
-        createBush(blockPlane, -14, 17, z - 5);
+        createTree(blockPlane, -7, 9, z);
+        createTree(blockPlane, -5, 9, z - 2);
+        createBush(blockPlane, -6, 9, z - 4);
         
         // right side forest
-        createTree(blockPlane, 18, 17, z);
-        createTree(blockPlane, 16, 17, z - 3);
-        createBush(blockPlane, 14, 17, z - 5);
+        createTree(blockPlane, 19, 9, z);
+        createTree(blockPlane, 17, 9, z - 2);
+        createBush(blockPlane, 18, 9, z - 4);
     }
     
     // ramps get forest edges too
     // ramp 1
-    createTree(blockPlane, -18, 5, -82);
-    createTree(blockPlane, 18, 5, -82);
-    createTree(blockPlane, -18, 5, -90);
-    createTree(blockPlane, 18, 5, -90);
+    createTree(blockPlane, -13, 3, -56);
+    createTree(blockPlane, 13, 3, -56);
+    createTree(blockPlane, -13, 3, -75);
+    createTree(blockPlane, 13, 3, -75);
+    createBush(blockPlane, -11, 3, -65);
+    createBush(blockPlane, 11, 3, -65);
     
     // ramp 2
-    createTree(blockPlane, -18, 13, -148);
-    createTree(blockPlane, 18, 13, -148);
-    createTree(blockPlane, -18, 13, -156);
-    createTree(blockPlane, 18, 13, -156);
+    createTree(blockPlane, -19, 8.25, -136);
+    createTree(blockPlane, 7, 8.25, -136);
+    createTree(blockPlane, -19, 8.25, -155);
+    createTree(blockPlane, 7, 8.25, -155);
+    createBush(blockPlane, -17, 8.25, -145);
+    createBush(blockPlane, 5, 8.25, -145);
     
     // trees on platform 1
-    createTree(blockPlane, -15, 1, -40);
-    createTree(blockPlane, -12, 1, -50);
-    createBush(blockPlane, -10, 1, -60);
-    createTree(blockPlane, 15, 1, -45);
-    createBush(blockPlane, 12, 1, -55);
+    createTree(blockPlane, -10, 1, -20);
+    createTree(blockPlane, -8, 1, -30);
+    createBush(blockPlane, -9, 1, -40);
+    createTree(blockPlane, 10, 1, -25);
+    createBush(blockPlane, 8, 1, -35);
     
     // trees on platform 2
-    createTree(blockPlane, -14, 9, -101);
-    createBush(blockPlane, -10, 9, -111);
-    createTree(blockPlane, -12, 9, -121);
-    createTree(blockPlane, 14, 9, -106);
-    createBush(blockPlane, 10, 9, -116);
-    createTree(blockPlane, 12, 9, -126);
+    createTree(blockPlane, -15, 3.5, -100);
+    createBush(blockPlane, -13, 3.5, -110);
+    createTree(blockPlane, -14, 3.5, -120);
+    createTree(blockPlane, 3, 3.5, -105);
+    createBush(blockPlane, 1, 3.5, -115);
+    createTree(blockPlane, 2, 3.5, -125);
     
     // trees on platform 3
-    createTree(blockPlane, -15, 17, -167);
-    createBush(blockPlane, -11, 17, -177);
-    createTree(blockPlane, -13, 17, -187);
-    createBush(blockPlane, -9, 17, -192);
-    createTree(blockPlane, 15, 17, -172);
-    createBush(blockPlane, 11, 17, -182);
-    createTree(blockPlane, 13, 17, -192);
+    createTree(blockPlane, -4, 9, -180);
+    createBush(blockPlane, -2, 9, -190);
+    createTree(blockPlane, -3, 9, -200);
+    createBush(blockPlane, -1, 9, -205);
+    createTree(blockPlane, 16, 9, -185);
+    createBush(blockPlane, 14, 9, -195);
+    createTree(blockPlane, 15, 9, -205);
 
     // obstacles positioned along the platform
     const obstacles3D = [];
@@ -403,7 +455,7 @@ function createBlock() {
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(0, 17.5, -207); // end of platform 3
+    finishMesh.position.set(6, 9.5, -212); // end of platform 3
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;

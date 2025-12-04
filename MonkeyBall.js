@@ -628,29 +628,40 @@ function updateBlockTilt(dt) {
     let tX = Math.min(1, speedX * dt);
     let tZ = Math.min(1, speedZ * dt);
 
-    blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, targetX, tX);
-    blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, targetZ, tZ);
+    // If serial data is present, use it for both mesh and physics
+    if (latestQuat) {
+        const serialQ = new THREE.Quaternion(latestQuat.x, latestQuat.z, -latestQuat.y, latestQuat.w);
+        blockMesh.quaternion.slerp(serialQ, 0.1);
+        const euler = new THREE.Euler().setFromQuaternion(serialQ, 'ZYX');
+        // Clamp tilt for safety
+        //euler.x = THREE.MathUtils.clamp(euler.x, -maxTilt, maxTilt);
+        //euler.z = THREE.MathUtils.clamp(euler.z, -maxTilt, maxTilt);
+        //blockMesh.rotation.x = euler.x;
+        //blockMesh.rotation.y = euler.y;
+        //blockMesh.rotation.z = euler.z;
+        blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, euler.x, 0.2);
+        blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, euler.z, 0.2);
 
-    blockMesh.rotation.x = THREE.MathUtils.clamp(blockMesh.rotation.x, -maxTilt, maxTilt);
-    blockMesh.rotation.z = THREE.MathUtils.clamp(blockMesh.rotation.z, -maxTilt, maxTilt);
+    } else {
+        blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, targetX, tX);
+        blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, targetZ, tZ);
+        blockMesh.rotation.x = THREE.MathUtils.clamp(blockMesh.rotation.x, -maxTilt, maxTilt);
+        blockMesh.rotation.z = THREE.MathUtils.clamp(blockMesh.rotation.z, -maxTilt, maxTilt);
+    }
 
     try {
         window.blockBody.activate();
-    } catch (err) {
-    }
+    } catch (err) {}
 
     let transform = new Ammo.btTransform();
     transform.setIdentity();
-
     transform.setOrigin(new Ammo.btVector3(
         blockMesh.position.x,
         blockMesh.position.y,
         blockMesh.position.z
     ));
 
-    // Convert Three.js quaternion → Ammo quaternion
-    let q = new THREE.Quaternion();
-    q.setFromEuler(new THREE.Euler(blockMesh.rotation.x, blockMesh.rotation.y, blockMesh.rotation.z, 'XYZ'));
+    let q = new THREE.Quaternion().setFromEuler(blockMesh.rotation);
     transform.setRotation(new Ammo.btQuaternion(q.x, q.y, q.z, q.w));
 
     blockBody.getMotionState().setWorldTransform(transform);

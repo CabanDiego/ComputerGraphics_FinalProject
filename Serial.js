@@ -45,11 +45,12 @@ function parseSerialLine(line) {
     /qW:\s*([-\d.]+)\s+qX:\s*([-\d.]+)\s+qY:\s*([-\d.]+)\s+qZ:\s*([-\d.]+)/
   );
   if (match) {
-    latestQuat = {
+    return {
       w: parseFloat(match[1]),
       x: parseFloat(match[2]),
       y: parseFloat(match[3]),
       z: parseFloat(match[4])
     };
   }
+  return null;
 }

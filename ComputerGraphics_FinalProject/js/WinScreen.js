@@ -1,7 +1,7 @@
 export function setupWinScreen(onRetryCallback) {
     //Create game over screen
     const winScreen = document.createElement('div');
-    winScreen.id = 'gameOverScreen';
+    winScreen.id = 'winScreen';
     winScreen.style.display = 'none';
     winScreen.innerHTML = ``;
     
@@ -13,10 +13,10 @@ export function setupWinScreen(onRetryCallback) {
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: '9999',
+        backgroundColor: 'white',
         backgroundImage: 'url("images/winScreen.jpg")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundSize: '70% auto',
+        backgroundPosition: 'center top',
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
     });

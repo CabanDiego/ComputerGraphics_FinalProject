@@ -423,7 +423,7 @@ function createBlock() {
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(0, 2, -250)
+    finishMesh.position.set(0, 2, -15)
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
@@ -563,10 +563,10 @@ function checkCollisions() {
         finishLine.getWorldPosition(finishWorldPos);
         const distanceToFinish = ballPos.distanceTo(finishWorldPos);
         
-        if (distanceToFinish < 8) {
+        if (distanceToFinish < 5) {
             // player wins!
-            finishLine.material.emissiveIntensity = 1.0;
             winScreen.show();
+            finishLine.material.emissiveIntensity = 1.0;
             stopBallPhysics(ball);
         }
     }

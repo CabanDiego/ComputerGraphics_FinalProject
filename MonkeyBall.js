@@ -1,7 +1,7 @@
 import * as THREE from './modules/three.module.js';
 import { setupLoadingScreen } from './LoadingScreen.js';
 import { setupGameOverScreen } from './GameOverScreen.js';
-
+import { createSerialButton } from './Serial.js';
 
 
 let physicsWorld, scene, camera, renderer, clock, rigidBodies = [], tmpTrans;
@@ -26,6 +26,11 @@ window.addEventListener('keyup', (e)=>{
     if (e.key === 'ArrowDown') keys.down = false;
 });
 
+let latestQuat = null;
+
+const serialButton = createSerialButton((quat) => {
+  latestQuat = quat;
+});
 
 const showStartScreen = setupLoadingScreen(() => {
     start(); 

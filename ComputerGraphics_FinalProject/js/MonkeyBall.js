@@ -1,11 +1,11 @@
-import * as THREE from './modules/three.module.js';
+import * as THREE from '../modules/three.module.js';
 import { setupLoadingScreen } from './LoadingScreen.js';
 import { setupGameOverScreen } from './GameOverScreen.js';
 import { createSerialButton } from './Serial.js';
-
+import { setupWinScreen } from './WinScreen.js';
 
 let physicsWorld, scene, camera, renderer, clock, rigidBodies = [], tmpTrans;
-const cameraPosition = new THREE.Vector3(0, 10, 20);
+const cameraPosition = new THREE.Vector3(0, 20, 20);
 
 let keys = { left:false, right:false, up:false, down:false };
 let isGameOver = false;
@@ -41,6 +41,10 @@ const gameOverScreen = setupGameOverScreen(() => {
     resetGame();
 });
 
+const winScreen = setupWinScreen(() => {
+    winScreen.hide();
+});
+
 
 Ammo().then(() => {
     tmpTrans = new Ammo.btTransform();
@@ -58,6 +62,7 @@ function start()
     createBall();
     renderFrame();
 }
+
 
 function setupPhysicsWorld() 
 {
@@ -79,7 +84,18 @@ function setupGraphics()
 {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbfd1e5);
+    
+    const skyboxCubemap = new THREE.CubeTextureLoader().load([
+    'images/skybox/px.png', 
+    'images/skybox/nx.png', 
+    'images/skybox/py.png', 
+    'images/skybox/ny.png', 
+    'images/skybox/pz.png', 
+    'images/skybox/nz.png'
+    ])
+
+    scene.background = skyboxCubemap;
+
 
     camera = new THREE.PerspectiveCamera(
         60,
@@ -87,7 +103,7 @@ function setupGraphics()
         0.2,
         5000
     );
-    camera.position.set(0, 30, 70);
+    camera.position.set(0, 50, 70);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     let hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.1);
@@ -126,21 +142,21 @@ function renderFrame() {
     updateBlockTilt(deltaTime);
     updatePhysics(deltaTime);
 
-    //Make camera follow the ball
+    // make camera follow the ball
     if (rigidBodies.length > 0) {
         const ball = rigidBodies[0]; 
         const ballPos = ball.position.clone();
 
         //Camera offset behind and above the ball
-        const cameraOffset = new THREE.Vector3(0, 20, 50);
+        const cameraOffset = new THREE.Vector3(0, 30, 20);
 
-        //Camera position
+        // camera position
         const desiredPos = ballPos.clone().add(cameraOffset);
 
-        //Smoothly move camera n
+        // smoothly move camera
         camera.position.lerp(desiredPos, 0.1); 
 
-        //Look slightly ahead of the ball
+        // look slightly ahead of the ball
         const lookAtPos = ballPos.clone().add(new THREE.Vector3(0, 5, 0));
         camera.lookAt(lookAtPos);
     }
@@ -153,20 +169,21 @@ function renderFrame() {
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
+    let scale = {x:50, y:2, z:300}; // extended platform
     let quat = {x:0, y:0, z:0, w:1};
     let mass = 0;
 
-    // Create dirt texture
+    // create dirt texture
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
-    // Brown dirt base
+    // brown dirt base
     ctx.fillStyle = '#654321';
     ctx.fillRect(0, 0, 512, 512);
     
-    // Add dirt texture noise
+    // add dirt texture noise
     for (let i = 0; i < 5000; i++) {
         const x = Math.random() * 512;
         const y = Math.random() * 512;
@@ -181,12 +198,12 @@ function createBlock() {
     dirtTexture.wrapT = THREE.RepeatWrapping;
     dirtTexture.repeat.set(5, 5);
 
-    // Create a group to hold all platforms
+    // create a group to hold all platforms
     let blockPlane = new THREE.Group();
     blockPlane.position.set(pos.x, pos.y, pos.z);
     scene.add(blockPlane);
 
-    // Ammo.js compound shape for physics
+    // ammojs compound shape for physics
     let compoundShape = new Ammo.btCompoundShape();
     
     // multi level pathway with ramps connecting platforms
@@ -284,7 +301,7 @@ function createBlock() {
         segment.receiveShadow = true;
         platform2.add(segment);
     }
-    platform2.position.set(0, 2.5, 0);
+    platform2.position.set(0, 2, 0);
     platform2.castShadow = true;
     platform2.receiveShadow = true;
     blockPlane.add(platform2);
@@ -453,14 +470,14 @@ function createBlock() {
     
     // finish line at end of platform 3
     let finishMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(30, 0.5, 5),
+        new THREE.BoxGeometry(30, 1.0, 5),
         new THREE.MeshPhongMaterial({ 
             color: 0xffff00,
             emissive: 0xffff00,
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(6, 9.5, -212); // end of platform 3
+    finishMesh.position.set(5, 10, -210);
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
@@ -483,8 +500,10 @@ function createBlock() {
     body.setCollisionFlags(body.getCollisionFlags() | 2); 
     body.setActivationState(4); 
 
-    body.setFriction(1.5);
-    body.setRestitution(0.2);
+    //Reduce bounciness and increase friction so the ball doesn't gain energy
+    //Use a higher friction and a low restitution (0 = no bounce)
+    body.setFriction(1.0);
+    body.setRestitution(0);
 
 
     window.blockMesh = blockPlane;
@@ -497,10 +516,13 @@ function createBall()
     let pos = {x: 0, y: 20, z: 0};
     let radius = 2;
     let quat = {x: 0, y: 0, z: 0, w: 1};
-    let mass = 1.0;
+    let mass = 2.0;
+
+    const loader = new THREE.TextureLoader();
+    const ballTexture = loader.load('images/ballTexture.jpg');
 
     //threeJS Section
-    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({color: 0xff0505}));
+    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({ map: ballTexture }));
 
     ball.position.set(pos.x, pos.y, pos.z);
     
@@ -510,7 +532,7 @@ function createBall()
     scene.add(ball);
 
 
-    //Ammojs Section
+    // ammojs section
     let transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
@@ -527,7 +549,7 @@ function createBall()
     let body = new Ammo.btRigidBody( rbInfo );
 
     physicsWorld.addRigidBody( body );
-    
+     
     ball.userData.physicsBody = body;
     rigidBodies.push(ball);
 
@@ -582,9 +604,16 @@ function checkCollisions() {
             obstacle.material.emissive.setHex(0xffff00);
             obstacle.material.color.setHex(0xffffff);
             
+            // enable physics collision when flashing and keep it enabled
+            if (obstacle.userData.physicsBody && !obstacle.userData.collisionEnabled) {
+                obstacle.userData.physicsBody.setCollisionFlags(2); // cf static object 2 enabled
+                obstacle.userData.collisionEnabled = true; // mark as enabled permanently
+            }
+            
             setTimeout(() => {
                 obstacle.material.emissive.setHex(0x000000);
                 obstacle.material.color.setHex(obstacle.userData.originalColor);
+                // collision stays enabled
             }, 300);
         }
     });
@@ -595,13 +624,12 @@ function checkCollisions() {
         finishLine.getWorldPosition(finishWorldPos);
         const distanceToFinish = ballPos.distanceTo(finishWorldPos);
         
-        if (distanceToFinish < 8) {
+        if (distanceToFinish < 5) {
             // player wins!
+            winScreen.show();
             finishLine.material.emissiveIntensity = 1.0;
-            console.log("You reached the finish line!");
-            setTimeout(() => {
-                finishLine.material.emissiveIntensity = 0.3;
-            }, 500);
+            stopBallPhysics(ball);
+            isGameOver = true;
         }
     }
 }
@@ -665,7 +693,6 @@ function updateBlockTilt(dt) {
         blockMesh.position.z
     ));
 
-    let q = new THREE.Quaternion().setFromEuler(blockMesh.rotation);
     transform.setRotation(new Ammo.btQuaternion(q.x, q.y, q.z, q.w));
 
     blockBody.getMotionState().setWorldTransform(transform);
@@ -676,7 +703,7 @@ function checkBallOffMap() {
         return;
 
     const ball = rigidBodies[0];
-    //check if ball fell below platform or way past the end
+    // check if ball fell below platform or way past the end
     if (ball.position.y < -100 || ball.position.z < -280) 
     { 
         isGameOver = true;
@@ -685,7 +712,7 @@ function checkBallOffMap() {
     }
 }
 
-//Freeze ball when it is out of bounds
+// freeze ball when it is out of bounds
 function stopBallPhysics(ball) 
 {
     const body = ball.userData.physicsBody;
@@ -694,147 +721,11 @@ function stopBallPhysics(ball)
     body.setAngularVelocity(new Ammo.btVector3(0,0,0));
 }
 
-// create racing barrier obstacle
-function createBarrier(parent, x, y, z, rotation = 0) {
-    const group = new THREE.Group();
-    
-    // striped barrier
-    const barrier = new THREE.Mesh(
-        new THREE.BoxGeometry(8, 2, 1),
-        new THREE.MeshPhongMaterial({ 
-            color: 0xff0000,
-            flatShading: true
-        })
-    );
-    barrier.position.set(0, 1, 0);
-    barrier.castShadow = true;
-    barrier.userData.originalColor = 0xff0000;
-    group.add(barrier);
-    obstacles.push(barrier);
-    
-    // white stripe
-    const stripe = new THREE.Mesh(
-        new THREE.BoxGeometry(8.2, 0.5, 1.1),
-        new THREE.MeshPhongMaterial({ color: 0xffffff })
-    );
-    stripe.position.set(0, 1, 0);
-    stripe.castShadow = true;
-    stripe.userData.originalColor = 0xffffff;
-    group.add(stripe);
-    obstacles.push(stripe);
-    
-    group.position.set(x, y, z);
-    group.rotation.y = rotation;
-    parent.add(group);
-}
-
-// create tire stack obstacle
-function createTireStack(parent, x, y, z) {
-    const group = new THREE.Group();
-    const tireColor = 0x1a1a1a;
-    
-    for (let i = 0; i < 3; i++) {
-        const tire = new THREE.Mesh(
-            new THREE.TorusGeometry(1.2, 0.5, 8, 12),
-            new THREE.MeshPhongMaterial({ color: tireColor })
-        );
-        tire.position.set(0, 0.5 + i * 1, 0);
-        tire.rotation.x = Math.PI / 2;
-        tire.castShadow = true;
-        tire.userData.originalColor = tireColor;
-        group.add(tire);
-        obstacles.push(tire);
-    }
-    
-    group.position.set(x, y, z);
-    parent.add(group);
-}
-
-// create checkpoint arch
-function createCheckpoint(parent, x, y, z, color) {
-    const group = new THREE.Group();
-    
-    // left pillar
-    const leftPillar = new THREE.Mesh(
-        new THREE.BoxGeometry(1.5, 8, 1.5),
-        new THREE.MeshPhongMaterial({ 
-            color: color,
-            emissive: color,
-            emissiveIntensity: 0.3
-        })
-    );
-    leftPillar.position.set(-8, 4, 0);
-    leftPillar.castShadow = true;
-    leftPillar.userData.originalColor = color;
-    group.add(leftPillar);
-    obstacles.push(leftPillar);
-    
-    // right pillar
-    const rightPillar = new THREE.Mesh(
-        new THREE.BoxGeometry(1.5, 8, 1.5),
-        new THREE.MeshPhongMaterial({ 
-            color: color,
-            emissive: color,
-            emissiveIntensity: 0.3
-        })
-    );
-    rightPillar.position.set(8, 4, 0);
-    rightPillar.castShadow = true;
-    rightPillar.userData.originalColor = color;
-    group.add(rightPillar);
-    obstacles.push(rightPillar);
-    
-    // top arch
-    const arch = new THREE.Mesh(
-        new THREE.BoxGeometry(16, 1.5, 1.5),
-        new THREE.MeshPhongMaterial({ 
-            color: color,
-            emissive: color,
-            emissiveIntensity: 0.4
-        })
-    );
-    arch.position.set(0, 8, 0);
-    arch.castShadow = true;
-    arch.userData.originalColor = color;
-    group.add(arch);
-    obstacles.push(arch);
-    
-    group.position.set(x, y, z);
-    parent.add(group);
-}
-
-// create cone obstacle
-function createCone(parent, x, y, z) {
-    const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(1, 3, 8),
-        new THREE.MeshPhongMaterial({ 
-            color: 0xff6600,
-            flatShading: true
-        })
-    );
-    cone.position.set(x, y + 1.5, z);
-    cone.castShadow = true;
-    cone.userData.originalColor = 0xff6600;
-    parent.add(cone);
-    obstacles.push(cone);
-    
-    // white stripe
-    const stripe = new THREE.Mesh(
-        new THREE.ConeGeometry(1.05, 1, 8),
-        new THREE.MeshPhongMaterial({ color: 0xffffff })
-    );
-    stripe.position.set(x, y + 2, z);
-    stripe.castShadow = true;
-    stripe.userData.originalColor = 0xffffff;
-    parent.add(stripe);
-    obstacles.push(stripe);
-}
-
 // create fantasy tree
 function createTree(parent, x, y, z) {
     const group = new THREE.Group();
     
-    // Brown trunk
+    // brown trunk
     const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(0.8, 1, 8, 8),
         new THREE.MeshPhongMaterial({ color: 0x4a2511 })
@@ -845,7 +736,7 @@ function createTree(parent, x, y, z) {
     group.add(trunk);
     obstacles.push(trunk);
     
-    // Green foliage - bottom layer
+    // green foliage bottom layer
     const foliage1 = new THREE.Mesh(
         new THREE.ConeGeometry(3.5, 5, 8),
         new THREE.MeshPhongMaterial({ color: 0x228B22 })
@@ -856,7 +747,7 @@ function createTree(parent, x, y, z) {
     group.add(foliage1);
     obstacles.push(foliage1);
     
-    // Green foliage - middle layer
+    // green foliage middle layer
     const foliage2 = new THREE.Mesh(
         new THREE.ConeGeometry(2.8, 4, 8),
         new THREE.MeshPhongMaterial({ color: 0x2E8B57 })
@@ -867,7 +758,7 @@ function createTree(parent, x, y, z) {
     group.add(foliage2);
     obstacles.push(foliage2);
     
-    // Green foliage - top
+    // green foliage top
     const foliage3 = new THREE.Mesh(
         new THREE.ConeGeometry(2, 3, 8),
         new THREE.MeshPhongMaterial({ color: 0x32CD32 })
@@ -880,13 +771,35 @@ function createTree(parent, x, y, z) {
     
     group.position.set(x, y, z);
     parent.add(group);
+    
+    // add physics collision for entire tree using a box for more reliable collision from all angles
+    if (physicsWorld) {
+        let treeShape = new Ammo.btBoxShape(new Ammo.btVector3(3.5, 8, 3.5)); // box to cover trunk and foliage
+        treeShape.setMargin(0.1);
+        let treeTransform = new Ammo.btTransform();
+        treeTransform.setIdentity();
+        treeTransform.setOrigin(new Ammo.btVector3(x, y + 8, z)); // center of full tree
+        
+        let treeMass = 0; // static object
+        let treeLocalInertia = new Ammo.btVector3(0, 0, 0);
+        let treeMotionState = new Ammo.btDefaultMotionState(treeTransform);
+        let treeRbInfo = new Ammo.btRigidBodyConstructionInfo(treeMass, treeMotionState, treeShape, treeLocalInertia);
+        let treeBody = new Ammo.btRigidBody(treeRbInfo);
+        treeBody.setRestitution(0.5);
+        treeBody.setFriction(1.0);
+        treeBody.setCollisionFlags(4); // cf no contact response 4 disabled initially
+        physicsWorld.addRigidBody(treeBody);
+        
+        // store physics body reference in trunk userdata so we can enable disable it
+        trunk.userData.physicsBody = treeBody;
+    }
 }
 
 // create bush
 function createBush(parent, x, y, z) {
     const group = new THREE.Group();
     
-    // Main bush sphere
+    // main bush sphere
     const bush = new THREE.Mesh(
         new THREE.SphereGeometry(1.5, 8, 8),
         new THREE.MeshPhongMaterial({ color: 0x228B22 })
@@ -897,7 +810,7 @@ function createBush(parent, x, y, z) {
     group.add(bush);
     obstacles.push(bush);
     
-    // Additional bush clusters
+    // additional bush clusters
     const bush2 = new THREE.Mesh(
         new THREE.SphereGeometry(1.2, 8, 8),
         new THREE.MeshPhongMaterial({ color: 0x2E8B57 })
@@ -920,49 +833,33 @@ function createBush(parent, x, y, z) {
     
     group.position.set(x, y, z);
     parent.add(group);
-}
-
-// create colorful stylized obstacle
-function createSimpleObstacle(parent, x, y, z, color) {
-    const group = new THREE.Group();
     
-    // main body - cylinder
-    const body = new THREE.Mesh(
-        new THREE.CylinderGeometry(2, 2, 6, 8),
-        new THREE.MeshPhongMaterial({ 
-            color: color,
-            flatShading: true
-        })
-    );
-    body.position.set(0, 3, 0);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    body.userData.originalColor = color;
-    group.add(body);
-    obstacles.push(body);
-    
-    // top piece
-    const top = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 8, 8),
-        new THREE.MeshPhongMaterial({ 
-            color: color,
-            emissive: color,
-            emissiveIntensity: 0.3
-        })
-    );
-    top.position.set(0, 6.5, 0);
-    top.castShadow = true;
-    top.userData.originalColor = color;
-    group.add(top);
-    obstacles.push(top);
-    
-    group.position.set(x, y, z);
-    parent.add(group);
+    // add physics collision for entire bush larger sphere to cover all parts
+    if (physicsWorld) {
+        let bushShape = new Ammo.btSphereShape(2.5); // larger radius to cover all bush spheres
+        bushShape.setMargin(0.1);
+        let bushTransform = new Ammo.btTransform();
+        bushTransform.setIdentity();
+        bushTransform.setOrigin(new Ammo.btVector3(x, y + 1.5, z));
+        
+        let bushMass = 0; // static object
+        let bushLocalInertia = new Ammo.btVector3(0, 0, 0);
+        let bushMotionState = new Ammo.btDefaultMotionState(bushTransform);
+        let bushRbInfo = new Ammo.btRigidBodyConstructionInfo(bushMass, bushMotionState, bushShape, bushLocalInertia);
+        let bushBody = new Ammo.btRigidBody(bushRbInfo);
+        bushBody.setRestitution(0.4);
+        bushBody.setFriction(0.9);
+        bushBody.setCollisionFlags(4); // cf no contact response 4 disabled initially
+        physicsWorld.addRigidBody(bushBody);
+        
+        // store physics body reference in bush userdata so we can enable disable it
+        bush.userData.physicsBody = bushBody;
+    }
 }
 
 function resetGame() {
     isGameOver = false;
-    //Remove old ball
+    // remove old ball
     if (rigidBodies.length > 0) 
     {
         const oldBall = rigidBodies.pop();
@@ -970,7 +867,7 @@ function resetGame() {
         physicsWorld.removeRigidBody(oldBall.userData.physicsBody);
     }
     
-    //Reset block position
+    // reset block position
     if (window.blockMesh) 
     {
         window.blockMesh.rotation.set(0,0,0);
@@ -983,7 +880,7 @@ function resetGame() {
         }
     });
 
-    //Create a new ball
+    // create a new ball
     createBall();
 }
 

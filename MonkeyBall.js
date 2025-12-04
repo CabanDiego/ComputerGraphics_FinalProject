@@ -638,15 +638,13 @@ function updateBlockTilt(dt) {
         );
 
         blockMesh.quaternion.slerp(serialQ, 0.1);
-        const euler = new THREE.Euler().setFromQuaternion(serialQ, 'ZYX');
-        // Clamp tilt for safety
-        //euler.x = THREE.MathUtils.clamp(euler.x, -maxTilt, maxTilt);
+        
+        // Euler angles
+        //const euler = new THREE.Euler().setFromQuaternion(serialQ, 'ZYX');
+        //euler.x = THREE.MathUtils.clamp(euler.x, -maxTilt, maxTilt); // constraining tilt
         //euler.z = THREE.MathUtils.clamp(euler.z, -maxTilt, maxTilt);
-        //blockMesh.rotation.x = euler.x;
-        //blockMesh.rotation.y = euler.y;
-        //blockMesh.rotation.z = euler.z;
-        //blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, euler.x, 0.2);
-        //blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, euler.z, 0.2);
+        //blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, euler.x, 0.1);
+        //blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, euler.z, 0.1);
 
     } else {
         blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, targetX, tX);

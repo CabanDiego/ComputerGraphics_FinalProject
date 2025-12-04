@@ -1,6 +1,7 @@
-import * as THREE from './modules/three.module.js';
+import * as THREE from '../modules/three.module.js';
 import { setupLoadingScreen } from './LoadingScreen.js';
 import { setupGameOverScreen } from './GameOverScreen.js';
+import { setupWinScreen } from './WinScreen.js';
 
 
 
@@ -36,6 +37,10 @@ const gameOverScreen = setupGameOverScreen(() => {
     resetGame();
 });
 
+const winScreen = setupWinScreen(() => {
+    winScreen.hide();
+});
+
 
 Ammo().then(() => {
     tmpTrans = new Ammo.btTransform();
@@ -54,6 +59,7 @@ function start()
     renderFrame();
 }
 
+
 function setupPhysicsWorld() 
 {
     let collisionConfiguration = new Ammo.btDefaultCollisionConfiguration(),
@@ -67,14 +73,25 @@ function setupPhysicsWorld()
         solver,
         collisionConfiguration
     );
-    physicsWorld.setGravity(new Ammo.btVector3(0, -50, 0)); // even stronger gravity for much faster rolling
+    physicsWorld.setGravity(new Ammo.btVector3(0, -50, 0)); // Even stronger gravity for much faster rolling
 }
 
 function setupGraphics() 
 {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbfd1e5);
+    
+    const skyboxCubemap = new THREE.CubeTextureLoader().load([
+    'images/skybox/px.png', 
+    'images/skybox/nx.png', 
+    'images/skybox/py.png', 
+    'images/skybox/ny.png', 
+    'images/skybox/pz.png', 
+    'images/skybox/nz.png'
+    ])
+
+    scene.background = skyboxCubemap;
+
 
     camera = new THREE.PerspectiveCamera(
         60,
@@ -126,7 +143,7 @@ function renderFrame() {
         const ball = rigidBodies[0]; 
         const ballPos = ball.position.clone();
 
-        // camera offset behind and above the ball
+        //Camera offset behind and above the ball
         const cameraOffset = new THREE.Vector3(0, 20, 50);
 
         // camera position
@@ -148,6 +165,7 @@ function renderFrame() {
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
+    let scale = {x:50, y:2, z:300}; // extended platform
     let quat = {x:0, y:0, z:0, w:1};
     let mass = 0;
 
@@ -455,7 +473,7 @@ function createBlock() {
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(6, 9.5, -212); // end of platform 3
+    finishMesh.position.set(0, 1.5, -215);
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
@@ -478,8 +496,10 @@ function createBlock() {
     body.setCollisionFlags(body.getCollisionFlags() | 2); 
     body.setActivationState(4); 
 
-    body.setFriction(1.5);
-    body.setRestitution(0.2);
+    //Reduce bounciness and increase friction so the ball doesn't gain energy
+    //Use a higher friction and a low restitution (0 = no bounce)
+    body.setFriction(1.0);
+    body.setRestitution(0.05);
 
 
     window.blockMesh = blockPlane;
@@ -492,9 +512,12 @@ function createBall()
     let pos = {x: 0, y: 20, z: 0};
     let radius = 2;
     let quat = {x: 0, y: 0, z: 0, w: 1};
-    let mass = 1.0;
+    let mass = 2.0;
 
-    // threejs section
+    const loader = new THREE.TextureLoader();
+    const ballTexture = loader.load('images/ballTexture.jpg');
+
+    //threeJS Section
     let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({color: 0xff0505}));
 
     ball.position.set(pos.x, pos.y, pos.z);
@@ -598,9 +621,9 @@ function checkCollisions() {
         const distanceToFinish = ballPos.distanceTo(finishWorldPos);
         
         if (distanceToFinish < 8) {
-            // player wins
+            // player wins!
             finishLine.material.emissiveIntensity = 1.0;
-            console.log("you reached the finish line");
+            console.log("You reached the finish line!");
             setTimeout(() => {
                 finishLine.material.emissiveIntensity = 0.3;
             }, 500);

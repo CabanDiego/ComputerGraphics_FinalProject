@@ -35,7 +35,7 @@ export function setupLoadingScreen(onStartCallback) {
         startScreen.id = 'startScreen';
         startScreen.innerHTML = `<h1>Ready to Play</h1><button id="startButton">START</button> 
         <div id="controlsLabel">Use Arrow Keys to Play</div>
-        <img id="controlsImage" src="images/arrowkeys.png"></img>`;
+        <img id="controlsImage" src="images/arrowKeys.png"></img>`;
         Object.assign(startScreen.style, {
             position: 'fixed',
             top: 0,

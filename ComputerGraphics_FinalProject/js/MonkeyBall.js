@@ -144,7 +144,7 @@ function renderFrame() {
         const ballPos = ball.position.clone();
 
         //Camera offset behind and above the ball
-        const cameraOffset = new THREE.Vector3(0, 60, 20);
+        const cameraOffset = new THREE.Vector3(0, 30, 20);
 
         // camera position
         const desiredPos = ballPos.clone().add(cameraOffset);
@@ -499,7 +499,7 @@ function createBlock() {
     //Reduce bounciness and increase friction so the ball doesn't gain energy
     //Use a higher friction and a low restitution (0 = no bounce)
     body.setFriction(1.0);
-    body.setRestitution(0.05);
+    body.setRestitution(0);
 
 
     window.blockMesh = blockPlane;
@@ -518,7 +518,7 @@ function createBall()
     const ballTexture = loader.load('images/ballTexture.jpg');
 
     //threeJS Section
-    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({color: 0xff0505}));
+    let ball = new THREE.Mesh(new THREE.SphereGeometry(radius), new THREE.MeshPhongMaterial({ map: ballTexture }));
 
     ball.position.set(pos.x, pos.y, pos.z);
     
@@ -545,7 +545,7 @@ function createBall()
     let body = new Ammo.btRigidBody( rbInfo );
 
     physicsWorld.addRigidBody( body );
-    
+     
     ball.userData.physicsBody = body;
     rigidBodies.push(ball);
 

@@ -1,6 +1,7 @@
 import * as THREE from '../modules/three.module.js';
 import { setupLoadingScreen } from './LoadingScreen.js';
 import { setupGameOverScreen } from './GameOverScreen.js';
+import { setupWinScreen } from './WinScreen.js';
 
 
 
@@ -34,6 +35,10 @@ const showStartScreen = setupLoadingScreen(() => {
 const gameOverScreen = setupGameOverScreen(() => {
     gameOverScreen.hide();
     resetGame();
+});
+
+const winScreen = setupWinScreen(() => {
+    winScreen.hide();
 });
 
 
@@ -160,7 +165,7 @@ function renderFrame() {
 
 function createBlock() {
     let pos = {x:0, y:0, z:0};
-    let scale = {x:50, y:2, z:300}; // extended platform
+    let scale = {x:60, y:2, z:700}; // extended platform
     let quat = {x:0, y:0, z:0, w:1};
     let mass = 0;
 
@@ -418,7 +423,7 @@ function createBlock() {
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(0, 1.5, -215);
+    finishMesh.position.set(0, 2, -250)
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
@@ -561,10 +566,8 @@ function checkCollisions() {
         if (distanceToFinish < 8) {
             // player wins!
             finishLine.material.emissiveIntensity = 1.0;
-            console.log("You reached the finish line!");
-            setTimeout(() => {
-                finishLine.material.emissiveIntensity = 0.3;
-            }, 500);
+            winScreen.show();
+            stopBallPhysics(ball);
         }
     }
 }

@@ -67,3 +67,4 @@ export function setupGameOverScreen(onRetryCallback) {
         hide: () => gameOverScreen.style.display = 'none'
     };
 }
+

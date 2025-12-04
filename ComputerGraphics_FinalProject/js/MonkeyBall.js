@@ -656,6 +656,8 @@ function updateBlockTilt(dt) {
     let tX = Math.min(1, speedX * dt);
     let tZ = Math.min(1, speedZ * dt);
 
+    let usedQuat = null;  
+
     // If serial data is present, use it for both mesh and physics
     if (latestQuat) {
         const serialQ = new THREE.Quaternion(
@@ -666,6 +668,7 @@ function updateBlockTilt(dt) {
         );
 
         blockMesh.quaternion.slerp(serialQ, 0.1);
+        usedQuat = blockMesh.quaternion.clone();
         
         // Euler angles
         //const euler = new THREE.Euler().setFromQuaternion(serialQ, 'ZYX');
@@ -679,6 +682,7 @@ function updateBlockTilt(dt) {
         blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, targetZ, tZ);
         blockMesh.rotation.x = THREE.MathUtils.clamp(blockMesh.rotation.x, -maxTilt, maxTilt);
         blockMesh.rotation.z = THREE.MathUtils.clamp(blockMesh.rotation.z, -maxTilt, maxTilt);
+        usedQuat = new THREE.Quaternion().setFromEuler(blockMesh.rotation);
     }
 
     try {
@@ -692,9 +696,8 @@ function updateBlockTilt(dt) {
         blockMesh.position.y,
         blockMesh.position.z
     ));
-
-    transform.setRotation(new Ammo.btQuaternion(q.x, q.y, q.z, q.w));
-
+    
+    transform.setRotation(new Ammo.btQuaternion(usedQuat.x, usedQuat.y, usedQuat.z, usedQuat.w));
     blockBody.getMotionState().setWorldTransform(transform);
 }
 

@@ -630,7 +630,13 @@ function updateBlockTilt(dt) {
 
     // If serial data is present, use it for both mesh and physics
     if (latestQuat) {
-        const serialQ = new THREE.Quaternion(latestQuat.x, latestQuat.z, -latestQuat.y, latestQuat.w);
+        const serialQ = new THREE.Quaternion(
+          latestQuat.x,
+        0.0, // locked yaw axis so that tilt controls only work
+          -latestQuat.y, // needed to invert axis
+          latestQuat.w
+        );
+
         blockMesh.quaternion.slerp(serialQ, 0.1);
         const euler = new THREE.Euler().setFromQuaternion(serialQ, 'ZYX');
         // Clamp tilt for safety
@@ -639,8 +645,8 @@ function updateBlockTilt(dt) {
         //blockMesh.rotation.x = euler.x;
         //blockMesh.rotation.y = euler.y;
         //blockMesh.rotation.z = euler.z;
-        blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, euler.x, 0.2);
-        blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, euler.z, 0.2);
+        //blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, euler.x, 0.2);
+        //blockMesh.rotation.z = THREE.MathUtils.lerp(blockMesh.rotation.z, euler.z, 0.2);
 
     } else {
         blockMesh.rotation.x = THREE.MathUtils.lerp(blockMesh.rotation.x, targetX, tX);

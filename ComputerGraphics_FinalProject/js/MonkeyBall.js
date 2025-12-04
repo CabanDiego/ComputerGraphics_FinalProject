@@ -42,8 +42,9 @@ const gameOverScreen = setupGameOverScreen(() => {
 });
 
 const winScreen = setupWinScreen(() => {
-    winScreen.hide();
+    resetGame();
 });
+winScreen.hide();
 
 
 Ammo().then(() => {

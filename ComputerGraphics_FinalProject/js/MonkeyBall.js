@@ -6,7 +6,7 @@ import { setupWinScreen } from './WinScreen.js';
 
 
 let physicsWorld, scene, camera, renderer, clock, rigidBodies = [], tmpTrans;
-const cameraPosition = new THREE.Vector3(0, 10, 20);
+const cameraPosition = new THREE.Vector3(0, 20, 20);
 
 let keys = { left:false, right:false, up:false, down:false };
 let isGameOver = false;
@@ -99,7 +99,7 @@ function setupGraphics()
         0.2,
         5000
     );
-    camera.position.set(0, 30, 70);
+    camera.position.set(0, 50, 70);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     let hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.1);
@@ -144,7 +144,7 @@ function renderFrame() {
         const ballPos = ball.position.clone();
 
         //Camera offset behind and above the ball
-        const cameraOffset = new THREE.Vector3(0, 20, 50);
+        const cameraOffset = new THREE.Vector3(0, 60, 20);
 
         // camera position
         const desiredPos = ballPos.clone().add(cameraOffset);
@@ -297,7 +297,7 @@ function createBlock() {
         segment.receiveShadow = true;
         platform2.add(segment);
     }
-    platform2.position.set(0, 2.5, 0);
+    platform2.position.set(0, 2, 0);
     platform2.castShadow = true;
     platform2.receiveShadow = true;
     blockPlane.add(platform2);
@@ -466,14 +466,14 @@ function createBlock() {
     
     // finish line at end of platform 3
     let finishMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(30, 0.5, 5),
+        new THREE.BoxGeometry(30, 1.0, 5),
         new THREE.MeshPhongMaterial({ 
             color: 0xffff00,
             emissive: 0xffff00,
             emissiveIntensity: 0.3
         })
     );
-    finishMesh.position.set(0, 1.5, -215);
+    finishMesh.position.set(5, 10, -210);
     finishMesh.userData.originalColor = 0xffff00;
     blockPlane.add(finishMesh);
     finishLine = finishMesh;
@@ -620,13 +620,12 @@ function checkCollisions() {
         finishLine.getWorldPosition(finishWorldPos);
         const distanceToFinish = ballPos.distanceTo(finishWorldPos);
         
-        if (distanceToFinish < 8) {
+        if (distanceToFinish < 5) {
             // player wins!
+            winScreen.show();
             finishLine.material.emissiveIntensity = 1.0;
-            console.log("You reached the finish line!");
-            setTimeout(() => {
-                finishLine.material.emissiveIntensity = 0.3;
-            }, 500);
+            stopBallPhysics(ball);
+            isGameOver = true;
         }
     }
 }
